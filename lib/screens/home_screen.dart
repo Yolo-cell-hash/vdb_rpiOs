@@ -17,41 +17,56 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 90,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue, Colors.lightBlueAccent],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-              ),
+      appBar: AppBar(
+        toolbarHeight: 90,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue, Colors.lightBlueAccent],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
             ),
           ),
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-              ),
-              onPressed: () async {
-                Navigator.pop(context);
-              },
-            ),
-          ),
-          title: Text(
-            'Godrej VDB',
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          centerTitle: true,
         ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          bleUtil.getPermissions();
-          bleUtil.findBleState();
-          bleUtil.startScan();
-        },
-        child: const Text('Scan'),
+        leading: Builder(
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () async {
+                  Navigator.pop(context);
+                },
+              ),
+        ),
+        title: Text(
+          'Godrej VDB',
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        centerTitle: true,
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Colors.blue, Colors.lightBlueAccent],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+          ),
+          borderRadius: BorderRadius.circular(10), // Match button's shape
+        ),
+        child: FloatingActionButton.extended(
+          backgroundColor: Colors.transparent,
+
+          // backgroundColor: Colors.lightBlueAccent,
+          onPressed: () async {
+            bleUtil.getPermissions();
+            bleUtil.findBleState();
+            bleUtil.startScan();
+          },
+          extendedPadding: const EdgeInsets.symmetric(
+            horizontal: 30,
+            vertical: 16,
+          ),
+          label: const Text('Scan', style: TextStyle(color: Colors.white, fontSize: 20),),
+        ),
       ),
       body: StreamBuilder<List<ScanResult>>(
         stream: bleUtil.scanedDevices(),
@@ -61,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No Devices found'),);
+            return const Center(child: Text('No Devices found'));
           } else {
             final devices = snapshot.data!;
             return ListView.builder(
