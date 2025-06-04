@@ -18,7 +18,7 @@ class _ScanCardState extends State<ScanCard> {
   @override
   bool isDeviceFound = false;
   BleUtil bleUtil = BleUtil();
-  final String deviceName = 'Airdopes Flex 454 ANC-GFP';
+  final String deviceName = 'GSLD1';
   bool isConnecting = false;
 
   Widget build(BuildContext context) {

@@ -4,9 +4,10 @@ import 'package:animate_do/animate_do.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/utils/ble_util.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:vdp_poc_new/screens/landing_screen.dart';
 
 class WifiCredentialsForm extends StatefulWidget {
-
   final device;
 
   const WifiCredentialsForm({super.key, required this.device});
@@ -17,13 +18,10 @@ class WifiCredentialsForm extends StatefulWidget {
 
 class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
   @override
-
   final buttonStyleEnabled = ElevatedButton.styleFrom(
     backgroundColor: Colors.transparent,
     shadowColor: Colors.transparent,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     minimumSize: const Size(double.infinity, 50),
   );
 
@@ -43,31 +41,29 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
               elevation: 4,
               margin: const EdgeInsets.all(15),
               child: Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   children: [
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                     const Center(
                       child: Text(
                         'Configure WiFi',
                         style: TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 28),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 28,
+                        ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                     const Text(
                       'Provide the SSID and Password for the WiFi network you want to connect to',
                       style: TextStyle(fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.blue),
@@ -93,9 +89,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.blue),
@@ -122,9 +116,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 35,
-                    ),
+                    const SizedBox(height: 35),
                   ],
                 ),
               ),
@@ -144,24 +136,61 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                 ),
                 child: ElevatedButton(
                   style: buttonStyleEnabled,
-                  onPressed: () async{
+                  onPressed: () async {
+                    final currCtxt = context;
                     final loaderProvider = Provider.of<LoaderProvider>(
                       context,
                       listen: false,
                     );
 
-                    final String macAddress = widget.device.device.id.toString();
+                    final String macAddress =
+                        widget.device.device.id.toString();
+                    final navigator = Navigator.of(context);
                     try {
                       loaderProvider.showLoader();
                       await bleUtil.connectToDevice(macAddress);
-                      if(await bleUtil.isDeviceConnected(macAddress)){
-                        await bleUtil.sendData(widget.device, ssid);
+
+                      final device = BluetoothDevice(
+                        remoteId: DeviceIdentifier(macAddress),
+                      );
+
+                      bool connectionStatus = await bleUtil.isDeviceConnected(
+                        macAddress,
+                      );
+
+                      if (connectionStatus) {
+                        await bleUtil.sendData(device, ssid);
                         await Future.delayed(const Duration(seconds: 1));
-                        await bleUtil.sendData(widget.device, password);
+                        await bleUtil.sendData(device, password);
+
+                        QuickAlert.show(
+                          context: currCtxt,
+                          type: QuickAlertType.success,
+                          title: 'Success',
+                          text: 'Configuration Successful',
+                          confirmBtnColor: Colors.green,
+                          onConfirmBtnTap: () {
+                            try {
+                              navigator.push(
+                                MaterialPageRoute(
+                                  builder: (context) => LandingScreen(),
+                                ),
+                              );
+                            } catch (e) {
+                              print(e);
+                            }
+                          },
+                        );
                       }
                     } catch (e) {
-                      print(e);
-                    }finally{
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.error,
+                        title: 'Oops...',
+                        text: e.toString(),
+                        confirmBtnColor: const Color(0xFFE30A17),
+                      );
+                    } finally {
                       loaderProvider.hideLoader();
                     }
                   },
