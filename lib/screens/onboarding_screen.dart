@@ -5,6 +5,7 @@ import 'package:vdp_poc_new/widgets/ble_prompt_stack.dart';
 import 'package:vdp_poc_new/widgets/brand_logo_name.dart';
 import 'package:vdp_poc_new/widgets/privacy_conditions_hyper.dart';
 
+
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -13,7 +14,6 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
