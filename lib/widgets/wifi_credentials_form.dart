@@ -28,6 +28,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
   BleUtil bleUtil = BleUtil();
   late String ssid;
   late String password;
+  late final ip;
 
   Widget build(BuildContext context) {
     return Padding(
@@ -137,6 +138,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                 child: ElevatedButton(
                   style: buttonStyleEnabled,
                   onPressed: () async {
+                    final ipProvider = Provider.of<LoaderProvider>(context, listen: false);
                     final currCtxt = context;
                     final loaderProvider = Provider.of<LoaderProvider>(
                       context,
@@ -162,6 +164,12 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                         await bleUtil.sendData(device, ssid);
                         await Future.delayed(const Duration(seconds: 1));
                         await bleUtil.sendData(device, password);
+                        await Future.delayed(const Duration(seconds: 1));
+
+                        print('---------------------------READING DATA----------------------------------------');
+                        bleUtil.readData(device);
+                        ipProvider.setIp("192.168.27.212:8080");
+
 
                         QuickAlert.show(
                           context: currCtxt,
@@ -171,6 +179,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                           confirmBtnColor: Colors.green,
                           onConfirmBtnTap: () {
                             try {
+                              navigator.pop();
                               navigator.push(
                                 MaterialPageRoute(
                                   builder: (context) => LandingScreen(),

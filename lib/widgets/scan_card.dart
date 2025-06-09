@@ -81,9 +81,14 @@ class _ScanCardState extends State<ScanCard> {
                 context,
                 listen: false,
               );
+              final macAddressProvider = Provider.of<LoaderProvider>(context, listen: false);
+
               try {
                 loaderProvider.showLoader();
                 final String macAddress = widget.device.device.id.toString();
+
+                macAddressProvider.setMacAddress(macAddress);
+
                 bool connectionStatus = await bleUtil.connectToDevice(
                   macAddress,
                 );
