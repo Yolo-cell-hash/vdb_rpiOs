@@ -18,7 +18,7 @@ class _ScanCardState extends State<ScanCard> {
   @override
   bool isDeviceFound = false;
   BleUtil bleUtil = BleUtil();
-  final String deviceName = 'GSLD1';
+  final String deviceName = 'My Pi';
   bool isConnecting = false;
 
   Widget build(BuildContext context) {

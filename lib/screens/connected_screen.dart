@@ -10,7 +10,7 @@ import 'package:vdp_poc_new/widgets/home_screen_func_button.dart';
 import 'package:vdp_poc_new/screens/video_stream_screen.dart';
 import 'package:vdp_poc_new/screens/settings_screen.dart';
 import 'package:vdp_poc_new/utils/websocket_util.dart';
-// import 'package:vdp_poc_new/screens/add_users_screen.dart';
+import 'package:vdp_poc_new/screens/users_screen.dart';
 import 'package:vdp_poc_new/utils/ble_util.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 // import 'package:vdp_poc_new/widgets/home_screen_logs_widget.dart';
@@ -258,12 +258,12 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                         btnLabel: 'Users',
                         iconData: Icons.people_alt_rounded,
                         callBack: () {
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     builder: (context) => AddUsersScreen(),
-                          //   ),
-                          // );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UsersScreen(),
+                            ),
+                          );
                         },
                       ),
                       HomeScreenFuncButton(

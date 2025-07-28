@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1015524249408",
+    "firebase_url": "https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "vdb-poc",
+    "storage_bucket": "vdb-poc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1015524249408:android:ceffc4da3189aeffd074a5",
+        "android_client_info": {
+          "package_name": "com.godrej.vdp_poc_new"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCY7Kk3melgyVzVUcgINkRQMvb_7BepWJc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -72,15 +72,6 @@ class BleUtil {
         }
 
         yield uniqueResultsSet.toList();
-
-        //
-        //    PRINTING CONNECTABLE DEVICES
-        // for (int i = 0; i < uniqueResultsSet.length; i++) {
-        //   print(uniqueResultsSet.toList()[i]);
-        //   print(
-        //     uniqueResultsSet.toList()[i].advertisementData.manufacturerData,
-        //   );
-        // }
       } else {
         yield [];
       }
@@ -152,7 +143,7 @@ class BleUtil {
       await device.connect();
       print('Connected to $bleAddress');
 
-      readData(device);
+      // readData(device);
 
       return true;
     } catch (e) {
@@ -164,7 +155,6 @@ class BleUtil {
   Future<void> disconnectFromDevice(String bleAddress) async {
     final device = BluetoothDevice(remoteId: DeviceIdentifier(bleAddress));
     try {
-      //await sendData(device, 'B');
       await device.disconnect();
       print('Disconnected from $bleAddress');
     } catch (e) {
@@ -196,6 +186,64 @@ class BleUtil {
     }
   }
 
+  Future<String?> subscribeToChar(BluetoothDevice device) async {
+    try {
+      List<BluetoothService> services = await device.discoverServices();
+      for (BluetoothService service in services) {
+        for (BluetoothCharacteristic c in service.characteristics) {
+          try {
+            if (c.properties.write) {
+              await c.setNotifyValue(true);
+              final completer = Completer<String?>();
+              c.value.listen((value) {
+                final result = utf8.decode(value);
+                print('Received command code - $result');
+                if (!completer.isCompleted) {
+                  completer.complete(result);
+                }
+              });
+              return await completer.future.timeout(Duration(seconds: 5), onTimeout: () => null);
+            }
+          } catch (e) {
+            print('$e -  during subscribing');
+            return "0";
+          }
+        }
+      }
+    } catch (e) {
+      print('Error occured while subscribing - $e');
+    }
+    return "1";
+  }
+
+  // Future<String?> subscribeToChar(BluetoothDevice device)async{
+  //   try{
+  //     List<BluetoothService> services = await device.discoverServices();
+  //     late String connectionStatus;
+  //     for (BluetoothService service in services) {
+  //       var characteristics = service.characteristics;
+  //       for (BluetoothCharacteristic c in characteristics) {
+  //         try {
+  //           if (c.properties.write) {
+  //             await c.setNotifyValue(true);
+  //             c.value.listen((value){
+  //               connectionStatus = utf8.decode(value);
+  //               print('Received command code - $connectionStatus');
+  //             });
+  //             return connectionStatus;
+  //           }
+  //         } catch (e) {
+  //           print('$e -  during subscribing');
+  //           return "0";
+  //         }
+  //       }
+  //     }
+  //   }catch(e){
+  //     print('Error occured while subscribing - $e');
+  //   }
+  //   return "1";
+  // }
+
   void readData(BluetoothDevice device) async {
     try {
       List<BluetoothService> services = await device.discoverServices();
@@ -222,4 +270,57 @@ class BleUtil {
       print('Error occurred while reading - $e');
     }
   }
+
+  Future<String?> subscribeToWiFiStatus(BluetoothDevice device) async {
+    try {
+      List<BluetoothService> services = await device.discoverServices();
+
+      for (BluetoothService service in services) {
+        for (BluetoothCharacteristic characteristic in service.characteristics) {
+          try {
+            // Check for both notify and indicate properties
+            if (characteristic.properties.notify || characteristic.properties.indicate) {
+              // Enable notifications
+              await characteristic.setNotifyValue(true);
+
+              // Create stream controller to manage notifications
+              final streamController = StreamController<String>();
+
+              // Subscribe to notifications
+              characteristic.lastValueStream.listen(
+                (value) {
+                  final status = utf8.decode(value);
+                  print('WiFi Connection Status: $status');
+                  streamController.add(status);
+                },
+                onError: (error) {
+                  print('Notification Error: $error');
+                  streamController.addError(error);
+                }
+              );
+
+              // Return the first notification that indicates success/failure
+              return await streamController.stream.firstWhere(
+                (status) => status.contains('Connected') || status.contains('Failed'),
+                orElse: () => 'null',
+              ).timeout(
+                Duration(seconds: 60),
+                onTimeout: () {
+                  print('Connection timeout');
+                  return 'null';
+                }
+              );
+            }
+          } catch (e) {
+            print('Error during subscription: $e');
+            continue;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error discovering services: $e');
+    }
+    return null;
+  }
+
 }

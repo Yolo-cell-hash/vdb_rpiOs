@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:another_flutter_splash_screen/another_flutter_splash_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vdp_poc_new/screens/home_screen.dart';
 import 'package:vdp_poc_new/screens/onboarding_screen.dart';
+import 'package:vdp_poc_new/screens/connected_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -30,7 +32,7 @@ class SplashScreen extends StatelessWidget {
           height: 100,
         ),
       ),
-      onAnimationEnd: () => debugPrint("On Fade In End"),
+      onAnimationEnd: () => debugPrint("On Fade Ins End"),
       nextScreen: OnboardingScreen(),
     );
   }

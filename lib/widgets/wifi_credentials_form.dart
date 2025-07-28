@@ -6,6 +6,7 @@ import 'package:vdp_poc_new/utils/ble_util.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:vdp_poc_new/screens/landing_screen.dart';
+import 'package:vdp_poc_new/utils/websocket_util.dart';
 
 class WifiCredentialsForm extends StatefulWidget {
   final device;
@@ -17,7 +18,8 @@ class WifiCredentialsForm extends StatefulWidget {
 }
 
 class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
-  @override
+  WebSocketSingleton webSocketSingleton = WebSocketSingleton();
+
   final buttonStyleEnabled = ElevatedButton.styleFrom(
     backgroundColor: Colors.transparent,
     shadowColor: Colors.transparent,
@@ -138,7 +140,6 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                 child: ElevatedButton(
                   style: buttonStyleEnabled,
                   onPressed: () async {
-                    final ipProvider = Provider.of<LoaderProvider>(context, listen: false);
                     final currCtxt = context;
                     final loaderProvider = Provider.of<LoaderProvider>(
                       context,
@@ -147,49 +148,50 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
 
                     final String macAddress =
                         widget.device.device.id.toString();
+
+                    print("Mac Address is - $macAddress");
                     final navigator = Navigator.of(context);
                     try {
                       loaderProvider.showLoader();
-                      await bleUtil.connectToDevice(macAddress);
-
                       final device = BluetoothDevice(
                         remoteId: DeviceIdentifier(macAddress),
                       );
 
-                      bool connectionStatus = await bleUtil.isDeviceConnected(
-                        macAddress,
-                      );
+                      bool connectionStatus = await bleUtil.isDeviceConnected(macAddress);
 
-                      if (connectionStatus) {
-                        await bleUtil.sendData(device, ssid);
-                        await Future.delayed(const Duration(seconds: 1));
-                        await bleUtil.sendData(device, password);
-                        await Future.delayed(const Duration(seconds: 1));
+                      String combinedWifiCreds = "$ssid,$password";
 
-                        print('---------------------------READING DATA----------------------------------------');
-                        bleUtil.readData(device);
-                        ipProvider.setIp("192.168.27.212:8080");
+                     if (connectionStatus) {
+                      print('-------------------------------------------------------------' );
 
+                        await bleUtil.sendData(device, combinedWifiCreds);
+                        print("Wifi Credentials sent are - $combinedWifiCreds");
+                        //
+                        String? response = await bleUtil.subscribeToChar(device);
 
-                        QuickAlert.show(
-                          context: currCtxt,
-                          type: QuickAlertType.success,
-                          title: 'Success',
-                          text: 'Configuration Successful',
-                          confirmBtnColor: Colors.green,
-                          onConfirmBtnTap: () {
-                            try {
-                              navigator.pop();
-                              navigator.push(
+                        print('ReSPONSE IS - $response');
+
+                        if(response != null && response.contains('Connected')){
+                          QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.success,
+                            title: 'Success',
+                            text: 'WiFi Credentials configured successfully',
+                            onConfirmBtnTap: ()async{
+                              // final navigator = Navigator.of(
+                              //   context,
+                              // );    MIGHT NEED THIS FOR LATER
+                              Navigator.pop(context);
+                              await bleUtil.disconnectFromDevice(macAddress);
+                              Navigator.push(
+                                context,
                                 MaterialPageRoute(
-                                  builder: (context) => LandingScreen(),
+                                  builder: (context) => const LandingScreen(),
                                 ),
                               );
-                            } catch (e) {
-                              print(e);
                             }
-                          },
-                        );
+                          );
+                        }
                       }
                     } catch (e) {
                       QuickAlert.show(

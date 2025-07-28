@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/screens/home_screen.dart';
+import 'package:vdp_poc_new/screens/connected_screen.dart';
 
 
 class BlePromptStack extends StatefulWidget {
@@ -90,7 +91,7 @@ class _BlePromptStackState extends State<BlePromptStack> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                      MaterialPageRoute(builder: (context) => const ConnectedScreen()),   //Homescreen
                     );
                   },
                   child: const Text(
