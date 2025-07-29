@@ -150,7 +150,10 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
                   '/poc_pings/ack',
                 );
 
-                final DataSnapshot snapshot = await ack.get();
+                final DatabaseEvent event = await ack.onValue.skip(1).first;
+
+                final DataSnapshot snapshot = event.snapshot;
+
                 if (snapshot.exists) {
                   var data = snapshot.value.toString();
                   if(data.isNotEmpty && data.contains('Success')){

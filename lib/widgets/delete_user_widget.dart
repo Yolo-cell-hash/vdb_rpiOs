@@ -6,7 +6,6 @@ import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 
-
 class DeleteUserWidget extends StatefulWidget {
   const DeleteUserWidget({super.key});
 
@@ -16,10 +15,8 @@ class DeleteUserWidget extends StatefulWidget {
 
 class _DeleteUserWidgetState extends State<DeleteUserWidget> {
   @override
-
   late String name;
   FbUtils fbUtils = FbUtils();
-
 
   Widget build(BuildContext context) {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
@@ -32,26 +29,27 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
           onChanged: (value) {
             name = value;
           },
-          decoration: InputDecoration(
-            hintText: 'Enter User Name',
-          ),
+          decoration: InputDecoration(hintText: 'Enter User Name'),
         ),
         GestureDetector(
-          onTap: () async{
+          onTap: () async {
             setState(() {
               loaderProvider.showLoader();
             });
             try {
-
-              DatabaseReference deleteUsers = database.ref('/poc_pings/deleteUsers');
+              DatabaseReference deleteUsers = database.ref(
+                '/poc_pings/deleteUsers',
+              );
               await deleteUsers.set(name);
 
               DatabaseReference ack = database.ref('/poc_pings/ack');
-              final DataSnapshot snapshot = await ack.get();
+              final DatabaseEvent event = await ack.onValue.skip(1).first;
+
+              final DataSnapshot snapshot = event.snapshot;
 
               if (snapshot.exists) {
                 var data = snapshot.value.toString();
-                if(data.isNotEmpty && data.contains('Success')){
+                if (data.isNotEmpty && data.contains('Success')) {
                   loaderProvider.hideLoader();
                   QuickAlert.show(
                     context: context,
@@ -64,7 +62,7 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
                       Navigator.pop(context);
                     },
                   );
-                }else if(data.isNotEmpty && data.contains('Error')){
+                } else if (data.isNotEmpty && data.contains('Error')) {
                   loaderProvider.hideLoader();
                   QuickAlert.show(
                     context: context,
@@ -81,7 +79,6 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
               } else {
                 print('No valid ACK received.');
               }
-
 
               loaderProvider.hideLoader();
             } catch (e) {
@@ -110,8 +107,7 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
             alignment: Alignment.center,
             child: Text(
               'Delete User',
-              style:
-              TextStyle(color: Colors.white, fontSize: 18),
+              style: TextStyle(color: Colors.white, fontSize: 18),
             ),
           ),
         ),
