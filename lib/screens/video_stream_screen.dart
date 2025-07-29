@@ -21,6 +21,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:vdp_poc_new/widgets/full_screen_video_view.dart';
 
 class VideoStreamScreen extends StatefulWidget {
   const VideoStreamScreen({super.key});
@@ -107,7 +108,10 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
     super.initState();
     _initRenderers();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+      final loaderProvider = Provider.of<LoaderProvider>(
+        context,
+        listen: false,
+      );
       loaderProvider.showLoader();
       try {
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
@@ -147,7 +151,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
     FirebaseDatabase database = fbUtils.database;
 
     return Consumer<LoaderProvider>(
-      builder: (context,loaderProvider,child){
+      builder: (context, loaderProvider, child) {
         return ModalProgressHUD(
           inAsyncCall: loaderProvider.isLoading,
           child: Scaffold(
@@ -165,24 +169,23 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
               leading: Builder(
                 builder:
                     (context) => IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _client.disconnect();
-                    DatabaseReference userResponseFieldRef = database
-                        .ref('/poc_pings/sendFeed');
-                    try {
-                      await userResponseFieldRef.set(false);
-                      print(
-                        'User response updated to true in Firebase at /updates/userResponse',
-                      );
-                    } catch (e) {
-                      print(
-                        'Error updating user response to true: $e',
-                      );
-                    }
-                  },
-                ),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _client.disconnect();
+                        DatabaseReference userResponseFieldRef = database.ref(
+                          '/poc_pings/sendFeed',
+                        );
+                        try {
+                          await userResponseFieldRef.set(false);
+                          print(
+                            'User response updated to true in Firebase at /updates/userResponse',
+                          );
+                        } catch (e) {
+                          print('Error updating user response to true: $e');
+                        }
+                      },
+                    ),
               ),
               title: const Text(
                 'Live Feed',
@@ -191,7 +194,10 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
               centerTitle: true,
             ),
             body: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 15.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 25.0,
+                vertical: 15.0,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -199,80 +205,86 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                   Center(
                     child: Text(
                       'Main Door',
-                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  SizedBox(height: 30,),
+                  SizedBox(height: 30),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Visibility(
                         visible: isConnectVisible,
-                        child: HomeScreenFuncButton(
-                          btnLabel: 'Watch Feed',
-                          iconData: Icons.video_call,
-                          callBack: () {
-                            try {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.confirm,
-                                title: 'Alert',
-                                text: 'Do you want to view the stream on $ip ?',
-                                confirmBtnColor: Colors.green,
-                                confirmBtnText: 'Yes',
-                                cancelBtnText: 'No',
-                                onConfirmBtnTap: () async {
-                                  Navigator.pop(context);
-                                  _watchStream();
+                        child: Visibility(
+                          visible: isStreamStarted? false : true,
+                          child: HomeScreenFuncButton(
+                            btnLabel: 'Watch Feed',
+                            iconData: Icons.video_call,
+                            callBack: () {
+                              try {
+                                QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.confirm,
+                                  title: 'Alert',
+                                  text: 'Do you want to view the stream on $ip ?',
+                                  confirmBtnColor: Colors.green,
+                                  confirmBtnText: 'Yes',
+                                  cancelBtnText: 'No',
+                                  onConfirmBtnTap: () async {
+                                    Navigator.pop(context);
+                                    _watchStream();
 
-                                  DatabaseReference userResponseFieldRef = database
-                                      .ref('/poc_pings/sendFeed');
-                                  try {
-                                    await userResponseFieldRef.set(true);
-                                    print(
-                                      'User response updated to true in Firebase at /updates/userResponse',
-                                    );
-                                    setState(() {
-                                      isStreamStarted = true;
-                                    });
-                                  } catch (e) {
-                                    print(
-                                      'Error updating user response to true: $e',
-                                    );
-                                  }
-                                },
-                                onCancelBtnTap: () async {
-                                  Navigator.pop(context);
-                                  DatabaseReference userResponseFieldRef = database
-                                      .ref('/poc_pings/sendFeed');
+                                    DatabaseReference userResponseFieldRef =
+                                        database.ref('/poc_pings/sendFeed');
+                                    try {
+                                      await userResponseFieldRef.set(true);
+                                      print(
+                                        'User response updated to true in Firebase at /updates/userResponse',
+                                      );
+                                      setState(() {
+                                        isStreamStarted = true;
+                                      });
+                                    } catch (e) {
+                                      print(
+                                        'Error updating user response to true: $e',
+                                      );
+                                    }
+                                  },
+                                  onCancelBtnTap: () async {
+                                    Navigator.pop(context);
+                                    DatabaseReference userResponseFieldRef =
+                                        database.ref('/poc_pings/sendFeed');
 
-                                  try {
-                                    await userResponseFieldRef.set(true);
-                                    print(
-                                      'User response updated to true in Firebase at /updates/userResponse',
-                                    );
-                                  } catch (e) {
-                                    print(
-                                      'Error updating user response to true: $e',
-                                    );
-                                  }
-                                },
-                              );
-                            } catch (e) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.error,
-                                title: 'Oops...',
-                                text: 'No Image to save',
-                                confirmBtnColor: const Color(0xFFE30A17),
-                              );
-                            }
-                          },
+                                    try {
+                                      await userResponseFieldRef.set(true);
+                                      print(
+                                        'User response updated to true in Firebase at /updates/userResponse',
+                                      );
+                                    } catch (e) {
+                                      print(
+                                        'Error updating user response to true: $e',
+                                      );
+                                    }
+                                  },
+                                );
+                              } catch (e) {
+                                QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: 'Oops...',
+                                  text: 'No Image to save',
+                                  confirmBtnColor: const Color(0xFFE30A17),
+                                );
+                              }
+                            },
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 30,),
+                  Visibility(visible: isStreamStarted? false : true,child: SizedBox(height: 30),),
                   if (_connected && isStreamStarted)
                     Container(
                       margin: EdgeInsets.all(0.0),
@@ -280,15 +292,33 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                         border: Border.all(color: Colors.blueAccent, width: 5),
                       ),
                       child: SizedBox(
-                        width: 350,
-                        height: 250,
+                        width: 500,
+                        height: 450,
                         child: InteractiveViewer(
-                            minScale: 1.0,
-                            maxScale: 4.0,
-                            child: RTCVideoView(_remoteRenderer)),
+                          minScale: 1.0,
+                          maxScale: 4.0,
+                          child: GestureDetector(
+                            onTap: (){
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FullScreenVideoView(renderer: _remoteRenderer),
+                                ),
+                              );
+                            },
+                            child: RTCVideoView(
+                              _remoteRenderer,
+                              filterQuality: FilterQuality.high,
+                              objectFit:
+                                  RTCVideoViewObjectFit
+                                      .RTCVideoViewObjectFitCover,
+                              mirror: false,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  SizedBox(height: 30,),
+                  SizedBox(height: 30),
 
                   Visibility(
                     visible: isStreamStarted,
@@ -299,17 +329,16 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                           btnLabel: 'Unlock',
                           iconData: Icons.door_front_door,
                           callBack: () async {
-                              loaderProvider.showLoader();
+                            loaderProvider.showLoader();
                             DatabaseReference userResponseFieldRef = database
                                 .ref('/poc_pings/unlockDoor');
                             try {
-                                await userResponseFieldRef.set(true);
-                                print(
-                                  'User response updated to true in Firebase at /updates/openDoor',
-                                );
-                                loaderProvider.hideLoader();
+                              await userResponseFieldRef.set(true);
+                              print(
+                                'User response updated to true in Firebase at /updates/openDoor',
+                              );
+                              loaderProvider.hideLoader();
                             } catch (e) {
-
                               loaderProvider.hideLoader();
 
                               QuickAlert.show(
@@ -332,13 +361,14 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                 Uint8List uint8List = Uint8List.fromList(data);
                                 final tempDir = await getTemporaryDirectory();
                                 final file =
-                                await File(
-                                  '${tempDir.path}/image.jpg',
-                                ).create();
+                                    await File(
+                                      '${tempDir.path}/image.jpg',
+                                    ).create();
                                 await file.writeAsBytes(uint8List);
-                                final result = await ImageGallerySaverPlus.saveFile(
-                                  file.path,
-                                );
+                                final result =
+                                    await ImageGallerySaverPlus.saveFile(
+                                      file.path,
+                                    );
                                 if (result['isSuccess']) {
                                   QuickAlert.show(
                                     context: context,
@@ -385,8 +415,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
             ),
           ),
         );
-      }
-
+      },
     );
   }
 }

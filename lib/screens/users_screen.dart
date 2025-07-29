@@ -12,6 +12,8 @@ import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/widgets/add_user_widget.dart';
 import 'package:vdp_poc_new/widgets/delete_user_widget.dart';
 
+import '../widgets/verify_user_widget.dart';
+
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
 
@@ -26,6 +28,8 @@ class _UsersScreenState extends State<UsersScreen> {
   StreamSubscription? streamSubscription;
   bool addUserClicked = false;
   bool deleteUserClicked = false;
+  bool verifyUserClicked = false;
+  bool viewUserClicked = false;
   bool showAdd = true;
   bool showDel = true;
   bool showVerify = true;
@@ -100,18 +104,14 @@ class _UsersScreenState extends State<UsersScreen> {
                           title: 'Add Users',
                           subtitle: 'Some subtitle',
                           voidCallbackFunc: () {
+                            print('Hello World');
                             setState(() {
                               addUserClicked = !addUserClicked;
                               showDel = !showDel;
                               showView = !showView;
                               showVerify = !showVerify;
                             });
-                            if (webSocketSingleton.channel != null) {
-                              setState(() {});
-                              print('Sent: Add Users');
-                            } else {
-                              print('Channel is not connected');
-                            }
+
                           },
                         ),
                         SizedBox(height: 20),
@@ -133,11 +133,6 @@ class _UsersScreenState extends State<UsersScreen> {
                               showVerify = !showVerify;
                               showAdd = !showAdd;
                             });
-                            if (webSocketSingleton.channel != null) {
-                              print('Sent: Delete Users');
-                            } else {
-                              print('Channel is not connected');
-                            }
                           },
                         ),
                         SizedBox(height: 20),
@@ -157,12 +152,8 @@ class _UsersScreenState extends State<UsersScreen> {
                               showAdd = !showAdd;
                               showView = !showView;
                               showDel = !showDel;
+                              verifyUserClicked = !verifyUserClicked;
                             });
-                            if (webSocketSingleton.channel != null) {
-                              print('Sent: Verify Users');
-                            } else {
-                              print('Channel is not connected');
-                            }
                           },
                         ),
                         SizedBox(height: 20.0),
@@ -182,6 +173,7 @@ class _UsersScreenState extends State<UsersScreen> {
                               showVerify = !showVerify;
                               showDel = !showDel;
                               showAdd = !showAdd;
+                              viewUserClicked = !viewUserClicked;
                             });
                             if (webSocketSingleton.channel != null) {
                               print('Sent: View Users');
@@ -196,6 +188,8 @@ class _UsersScreenState extends State<UsersScreen> {
                   ),
                   Visibility(visible: addUserClicked, child: AddUserWidget()),
                   Visibility(visible: deleteUserClicked, child: DeleteUserWidget()),
+                  Visibility(visible: verifyUserClicked, child: VerifyUserWidget()),
+
                 ],
               ),
             ),

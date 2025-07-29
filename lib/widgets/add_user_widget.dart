@@ -225,37 +225,37 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                   '/poc_pings/confirm',
                 );
 
-                DatabaseReference currentUsers = database.ref(
-                  '/poc_pings/currentUsers',
+                DatabaseReference ack = database.ref(
+                  '/poc_pings/ack',
                 );
 
-                await userResponseFieldRef.set('$name');
+                await userResponseFieldRef.set(name);
                 await showFeedField.set(false);
                 await confirmClick.set(true);
 
-                final DataSnapshot snapshot = await currentUsers.get();
+                final DataSnapshot snapshot = await ack.get();
                 if (snapshot.exists) {
                   var data = snapshot.value.toString();
-                  if(data.isNotEmpty && data.contains(name)){
+                  if(data.isNotEmpty && data.contains('Success')){
                     loaderProvider.hideLoader();
                     QuickAlert.show(
                       context: context,
                       type: QuickAlertType.success,
                       title: 'Success',
-                      text: 'User $name added successfully!',
+                      text: data.toString(),
                       confirmBtnText: 'OK',
                       onConfirmBtnTap: () {
                         Navigator.pop(context);
                         Navigator.pop(context);
                       },
                     );
-                  }else{
+                  }else if(data.isNotEmpty && data.contains('Error')){
                     loaderProvider.hideLoader();
                     QuickAlert.show(
                       context: context,
                       type: QuickAlertType.error,
                       title: 'Error',
-                      text: 'User $name could not be added!',
+                      text: data.toString(),
                       confirmBtnText: 'OK',
                       onConfirmBtnTap: () {
                         Navigator.pop(context);
@@ -264,10 +264,8 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                     );
                   }
                 } else {
-                  print('No users found in currentUsers.');
+                  print('No valid ACK received.');
                 }
-
-
 
                 print(
                   'User response updated to true in Firebase at /updates/addUsers',

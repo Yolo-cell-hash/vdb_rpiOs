@@ -1,9 +1,10 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
-import 'package:vdp_poc_new/utils/websocket_util.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 
 
 class DeleteUserWidget extends StatefulWidget {
@@ -17,11 +18,13 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
   @override
 
   late String name;
-  WebSocketSingleton webSocketSingleton = WebSocketSingleton();
+  FbUtils fbUtils = FbUtils();
+
 
   Widget build(BuildContext context) {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     final streamState = Provider.of<LoaderProvider>(context);
+    FirebaseDatabase database = fbUtils.database;
 
     return Column(
       children: [
@@ -34,68 +37,59 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
           ),
         ),
         GestureDetector(
-          onTap: () {
+          onTap: () async{
             setState(() {
               loaderProvider.showLoader();
             });
             try {
-              if (webSocketSingleton.channel != null) {
-                webSocketSingleton.channel?.sink
-                    .add('Deleted User - $name');
-                print('Sent: Delete User $name');
+
+              DatabaseReference deleteUsers = database.ref('/poc_pings/deleteUsers');
+              await deleteUsers.set(name);
+
+              DatabaseReference ack = database.ref('/poc_pings/ack');
+              final DataSnapshot snapshot = await ack.get();
+
+              if (snapshot.exists) {
+                var data = snapshot.value.toString();
+                if(data.isNotEmpty && data.contains('Success')){
+                  loaderProvider.hideLoader();
+                  QuickAlert.show(
+                    context: context,
+                    type: QuickAlertType.success,
+                    title: 'Success',
+                    text: data.toString(),
+                    confirmBtnText: 'OK',
+                    onConfirmBtnTap: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                    },
+                  );
+                }else if(data.isNotEmpty && data.contains('Error')){
+                  loaderProvider.hideLoader();
+                  QuickAlert.show(
+                    context: context,
+                    type: QuickAlertType.error,
+                    title: 'Error',
+                    text: data.toString(),
+                    confirmBtnText: 'OK',
+                    onConfirmBtnTap: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                    },
+                  );
+                }
               } else {
-                print('Channel is not connected');
+                print('No valid ACK received.');
               }
 
-              if (!streamState.isStreamSubscribed) {
-                streamState.setStreamSubscribed(true);
-                webSocketSingleton.stream?.listen((data) {
-                  // print('Received: $data');
 
-                  if (data.toString().contains(''
-                      ''
-                      'User $name deleted successfully')) {
-                    setState(() {
-                      loaderProvider.hideLoader();
-
-                      String currentTime =
-                      DateFormat('yyyy-MM-dd HH:mm')
-                          .format(DateTime.now());
-                      // Provider.of<LogState>(context,
-                      //     listen: false)
-                      //     .addLog(
-                      //     'User $name deleted successfully',
-                      //     currentTime,
-                      //     2);
-
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.success,
-                        title: 'User Deleted',
-                        text: 'User $name deleted successfully',
-                        confirmBtnColor: Colors.green,
-                      );
-                    });
-                  } else {
-                    setState(() {
-                      loaderProvider.hideLoader();
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.error,
-                        title: 'Error',
-                        text: 'User not found',
-                        confirmBtnColor:
-                        const Color(0xFFE30A17),
-                      );
-                    });
-                  }
-                });
-              }
+              loaderProvider.hideLoader();
             } catch (e) {
+              loaderProvider.hideLoader();
               QuickAlert.show(
                 context: context,
-                type: QuickAlertType.success,
-                title: 'User Deleted',
+                type: QuickAlertType.error,
+                title: 'Error',
                 text: e.toString(),
                 confirmBtnColor: const Color(0xFFE30A17),
               );
