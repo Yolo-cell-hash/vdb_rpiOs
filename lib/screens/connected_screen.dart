@@ -12,6 +12,7 @@ import 'package:vdp_poc_new/screens/settings_screen.dart';
 import 'package:vdp_poc_new/utils/websocket_util.dart';
 import 'package:vdp_poc_new/screens/users_screen.dart';
 import 'package:vdp_poc_new/utils/ble_util.dart';
+import 'package:vdp_poc_new/screens/logs_screen.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 // import 'package:vdp_poc_new/widgets/home_screen_logs_widget.dart';
 // import 'package:vdp_poc_new/utils/log_state.dart';
@@ -270,40 +271,41 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                         btnLabel: 'Logs',
                         iconData: Icons.history,
                         callBack: () {
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     builder: (context) => HomeScreenLogsWidget(),
-                          //   ),
-                          // );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LogsScreen(),
+                            ),
+                          );
                         },
                       ),
                     ],
                   ),
-                  StreamBuilder(
-                      stream: webSocketSingleton.stream,
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          final data = snapshot.data.toString();
-                          if (data.contains("incoming call")) {
-                            Future.microtask(() {
-                              print('Incoming Call');
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) => IncomingCallScreen(),
-                              //   ),
-                              // );
-                            });
-                          } else if (data.contains('Access Granted')) {
-                            String currentTime = DateFormat('yyyy-MM-dd HH:mm')
-                                .format(DateTime.now());
-                            // Provider.of<LogState>(context, listen: false)
-                            //     .addLog(data.toString(), currentTime, 1);
-                          }
-                        }
-                        return Container();
-                      }),
+                  // StreamBuilder(
+                  //     stream: webSocketSingleton.stream,
+                  //     builder: (context, snapshot) {
+                  //       if (snapshot.hasData) {
+                  //         final data = snapshot.data.toString();
+                  //         if (data.contains("incoming call")) {
+                  //           Future.microtask(() {
+                  //             print('Incoming Call');
+                  //             // Navigator.push(
+                  //             //   context,
+                  //             //   MaterialPageRoute(
+                  //             //     builder: (context) => IncomingCallScreen(),
+                  //             //   ),
+                  //             // );
+                  //           });
+                  //         } else if (data.contains('Access Granted')) {
+                  //           String currentTime = DateFormat('yyyy-MM-dd HH:mm')
+                  //               .format(DateTime.now());
+                  //           // Provider.of<LogState>(context, listen: false)
+                  //           //     .addLog(data.toString(), currentTime, 1);
+                  //         }
+                  //       }
+                  //       return Container();
+                  //     }
+                  //     ),
                 ],
               ),
             ),

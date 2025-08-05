@@ -11,8 +11,8 @@ import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/widgets/add_user_widget.dart';
 import 'package:vdp_poc_new/widgets/delete_user_widget.dart';
-
-import '../widgets/verify_user_widget.dart';
+import 'package:vdp_poc_new/widgets/view_users_widget.dart';
+import 'package:vdp_poc_new/widgets/verify_user_widget.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -189,6 +189,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   Visibility(visible: addUserClicked, child: AddUserWidget()),
                   Visibility(visible: deleteUserClicked, child: DeleteUserWidget()),
                   Visibility(visible: verifyUserClicked, child: VerifyUserWidget()),
+                  Visibility(visible: viewUserClicked,child: ViewUsersWidget()),
 
                 ],
               ),
