@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:animate_do/animate_do.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -46,6 +47,9 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
   late JanusWebRTCClient _client;
   RTCVideoRenderer _localRenderer = RTCVideoRenderer();
   RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+
+  bool _showControls = false;
+  Timer? _hideControlsTimer;
 
   void _connect() async {
     try {
@@ -142,6 +146,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
     _client.disconnect();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
+    _hideControlsTimer?.cancel();
     super.dispose();
   }
 
@@ -218,7 +223,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                       Visibility(
                         visible: isConnectVisible,
                         child: Visibility(
-                          visible: isStreamStarted? false : true,
+                          visible: isStreamStarted ? false : true,
                           child: HomeScreenFuncButton(
                             btnLabel: 'Watch Feed',
                             iconData: Icons.video_call,
@@ -228,7 +233,8 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                   context: context,
                                   type: QuickAlertType.confirm,
                                   title: 'Alert',
-                                  text: 'Do you want to view the stream on $ip ?',
+                                  text:
+                                      'Do you want to view the stream on $ip ?',
                                   confirmBtnColor: Colors.green,
                                   confirmBtnText: 'Yes',
                                   cancelBtnText: 'No',
@@ -284,7 +290,10 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                       ),
                     ],
                   ),
-                  Visibility(visible: isStreamStarted? false : true,child: SizedBox(height: 30),),
+                  Visibility(
+                    visible: isStreamStarted ? false : true,
+                    child: SizedBox(height: 30),
+                  ),
                   if (_connected && isStreamStarted)
                     Container(
                       margin: EdgeInsets.all(0.0),
@@ -292,28 +301,89 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                         border: Border.all(color: Colors.blueAccent, width: 5),
                       ),
                       child: SizedBox(
-                        width: 500,
-                        height: 450,
+                        width: double.maxFinite,
+                        height: MediaQuery.of(context).size.height * 0.35,
                         child: InteractiveViewer(
                           minScale: 1.0,
                           maxScale: 4.0,
-                          child: GestureDetector(
-                            onTap: (){
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FullScreenVideoView(renderer: _remoteRenderer),
+                          child: Stack(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _showControls = !_showControls;
+                                  });
+                                  if (_showControls) {
+                                    _hideControlsTimer?.cancel();
+                                    _hideControlsTimer = Timer(
+                                      Duration(milliseconds: 2500),
+                                      () {
+                                        if (mounted) {
+                                          setState(() {
+                                            _showControls = false;
+                                          });
+                                        }
+                                      },
+                                    );
+                                  }
+                                },
+                                child: RTCVideoView(
+                                  _remoteRenderer,
+                                  filterQuality: FilterQuality.high,
+                                  objectFit:
+                                      RTCVideoViewObjectFit
+                                          .RTCVideoViewObjectFitCover,
+                                  mirror: false,
                                 ),
-                              );
-                            },
-                            child: RTCVideoView(
-                              _remoteRenderer,
-                              filterQuality: FilterQuality.high,
-                              objectFit:
-                                  RTCVideoViewObjectFit
-                                      .RTCVideoViewObjectFitCover,
-                              mirror: false,
-                            ),
+                              ),
+                              Positioned(
+                                top: 10,
+                                right: 10,
+                                child: Flash(
+                                  animate: true,
+                                  infinite: true,
+                                  child: Row(
+                                    children:[ Container(
+                                      color: Colors.black26,
+                                      child:
+                                      Icon(
+                                        Icons.circle,
+                                        color: Colors.red,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    Text(' Live',style: TextStyle(color: Colors.red,fontSize: 15) ,)
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (_showControls)
+                                Positioned(
+                                  bottom: 10,
+                                  right: 10,
+                                  child: Container(
+                                    color: Colors.black26,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.fullscreen,
+                                        color: Colors.white,
+                                        size: 30,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) => FullScreenVideoView(
+                                                  renderer: _remoteRenderer,
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),

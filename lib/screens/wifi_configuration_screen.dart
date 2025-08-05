@@ -67,11 +67,14 @@ class _WifiConfigurationScreenState extends State<WifiConfigurationScreen> {
             body: Stack(
               children: [
                 Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    WifiCredentialsForm(device: widget.device,),
-                    Center(child: const PrivacyConditionsHyper()),
+                    WifiCredentialsForm(device: widget.device),
+                    Flex(
+                      direction: Axis.horizontal,
+                      children: [const PrivacyConditionsHyper()],
+                    ),
                   ],
                 ),
               ],

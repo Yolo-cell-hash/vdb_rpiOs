@@ -11,7 +11,7 @@ class ActivityLogCard extends StatefulWidget {
   final Uint8List? imageData;
 
   ActivityLogCard(
-      {required this.activity, required this.time, required this.statusCode,required this.imageData});
+      {required this.activity, required this.time, required this.statusCode, this.imageData});
 
   @override
   State<ActivityLogCard> createState() => _ActivityLogCardState();
@@ -28,7 +28,7 @@ class _ActivityLogCardState extends State<ActivityLogCard> {
               (context) => FadeIn(
             child: AlertDialog(
               title: Text(
-                'activity',
+                'Activity',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
@@ -36,10 +36,15 @@ class _ActivityLogCardState extends State<ActivityLogCard> {
                 panEnabled: true,
                 minScale: 1.0,
                 maxScale: 4.0,
-                child: Image.memory(
+                child:  widget.imageData != null
+                    ? Image.memory(
                   widget.imageData!,
                   fit: BoxFit.cover,
-                ),
+                )
+                    : const Text(
+                  'No image available',
+                  style: TextStyle(fontSize: 16),
+                ) ,
               ),
             ),
           ),
@@ -58,6 +63,13 @@ class _ActivityLogCardState extends State<ActivityLogCard> {
               DateFormat('yyyy-MM-dd -- HH:mm').format(
                 DateTime.parse(widget.time),
               ),
+            ),
+            leading: widget.imageData != null
+                ? CircleAvatar(
+              backgroundImage: MemoryImage(widget.imageData!),
+            )
+                : const CircleAvatar(
+              child: Icon(Icons.image_not_supported),
             ),
             trailing: widget.statusCode == 0
                 ? Icon(

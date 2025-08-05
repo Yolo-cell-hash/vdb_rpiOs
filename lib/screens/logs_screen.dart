@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:vdp_poc_new/widgets/activity_log_card.dart';
-import 'package:vdp_poc_new/widgets/activity_log_card.dart';
 
 class LogsScreen extends StatefulWidget {
   const LogsScreen({super.key});
@@ -20,6 +19,7 @@ class _LogsScreenState extends State<LogsScreen> {
     return _firestore
         .collection('logs')
         .where(FieldPath.documentId, isNotEqualTo: 'no_of_logs')
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -70,83 +70,89 @@ class _LogsScreenState extends State<LogsScreen> {
           ),
           centerTitle: true,
         ),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: _getLogsStream(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Center(
+        body: SingleChildScrollView(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _getLogsStream(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Error: ${snapshot.error}',
+                          style: const TextStyle(fontSize: 16)),
+                    ],
+                  ),
+                );
+              }
+          
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Loading logs...'),
+                    ],
+                  ),
+                );
+              }
+          
+              final users = snapshot.data?.docs ?? [];
+          
+              if (users.isEmpty) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('No logs found', style: TextStyle(fontSize: 18)),
+                    ],
+                  ),
+                );
+              }
+          
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Error: ${snapshot.error}',
-                        style: const TextStyle(fontSize: 16)),
-                  ],
-                ),
-              );
-            }
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading logs...'),
-                  ],
-                ),
-              );
-            }
-
-            final users = snapshot.data?.docs ?? [];
-
-            if (users.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text('No logs found', style: TextStyle(fontSize: 18)),
-                  ],
-                ),
-              );
-            }
-
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: users.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  String activity = data['message '] as String? ?? 'Unknown';
-
-                  // Calculate statusCode directly without setState
-                  int statusCode;
-                  if(activity.toString().contains('Error')){
-                    statusCode = 0;
-                  }else if(activity.toString().contains('Success')){
-                    statusCode = 1;
-                  } else {
-                    statusCode = -1; // or some default value
-                  }
-
-                  String timeStamp = data['timestamp'] as String? ?? 'Unknown';
-                  if (timeStamp != 'Unknown') {
-                    try {
-                      DateTime dateTime = DateTime.parse(timeStamp);
-                      timeStamp = dateTime.toString();
-                    } catch (e) {
-                      timeStamp = 'Invalid date';
+                  children: users.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    String activity = data['message '] as String? ?? 'Unknown';
+          
+                    // Calculate statusCode directly without setState
+                    int statusCode;
+                    if(activity.toString().contains('Error')){
+                      statusCode = 0;
+                    }else if(activity.toString().contains('Success')){
+                      statusCode = 1;
+                    } else {
+                      statusCode = -1; // or some default value
                     }
-                  }
-                  final imageData = _decodeBase64Image(data['image']);
-                  return ActivityLogCard(activity: activity, time: timeStamp, statusCode: statusCode, imageData: imageData);
-                }).toList(),
-              ),
-            );
-          },
+          
+                    String timeStamp = data['timestamp'] as String? ?? 'Unknown';
+                    if (timeStamp != 'Unknown') {
+                      try {
+                        DateTime dateTime = DateTime.parse(timeStamp);
+                        timeStamp = dateTime.toString();
+                      } catch (e) {
+                        timeStamp = 'Invalid date';
+                      }
+                    }
+                    final imageData = _decodeBase64Image(data['image']);
+                    if(imageData == null || imageData.isEmpty) {
+                      return ActivityLogCard(activity: activity, time: timeStamp, statusCode: statusCode);
+                    }else{
+                      return ActivityLogCard(activity: activity, time: timeStamp, statusCode: statusCode, imageData: imageData);
+                    }
+                  }).toList(),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
