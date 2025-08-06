@@ -70,12 +70,22 @@ class _DeleteUsersDropdownWidgetState extends State<DeleteUsersDropdownWidget> {
 
             if (users.isEmpty) {
               return Container(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
                 child: Text('No users available'),
               );
             }
 
             return DropDownSearchField(
+              noItemsFoundBuilder: (context) {
+                return Container(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'No users found',
+                    style: TextStyle(fontStyle: FontStyle.italic,
+                        color: Colors.grey[600]),
+                  ),
+                );
+              },
               displayAllSuggestionWhenTap: true,
               isMultiSelectDropdown: false,
               textFieldConfiguration: TextFieldConfiguration(
@@ -98,19 +108,24 @@ class _DeleteUsersDropdownWidgetState extends State<DeleteUsersDropdownWidget> {
                     };
                   }).toList();
                 }
-                return users.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  String userName = data['name '] as String? ?? 'Unknown';
-                  return userName.toLowerCase().contains(pattern.toLowerCase());
-                }).map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  String userName = data['name '] as String? ?? 'Unknown';
-                  return {
-                    'id': doc.id,
-                    'name': userName,
-                    'image': _decodeBase64Image(data['image']),
-                  };
-                }).toList();
+                return users
+                    .where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      String userName = data['name '] as String? ?? 'Unknown';
+                      return userName.toLowerCase().contains(
+                        pattern.toLowerCase(),
+                      );
+                    })
+                    .map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      String userName = data['name '] as String? ?? 'Unknown';
+                      return {
+                        'id': doc.id,
+                        'name': userName,
+                        'image': _decodeBase64Image(data['image']),
+                      };
+                    })
+                    .toList();
               },
               itemBuilder: (context, suggestion) {
                 return ListTile(
