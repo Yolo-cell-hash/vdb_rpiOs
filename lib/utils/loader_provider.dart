@@ -6,12 +6,16 @@ class LoaderProvider with ChangeNotifier {
   String _macAddress = '';
   String _ip = '';
   String _fcmToken = '';
+  String _selectedUserName = '';
+  String? _selectedUserId;
 
 
   bool get isLoading => _isLoading;
   String get macAddress => _macAddress;
   String get ip => _ip;
   String get fcmToken => _fcmToken;
+  String get selectedUserName => _selectedUserName;
+  String? get selectedUserId => _selectedUserId;
 
   bool _isStreamSubscribed = false;
 
@@ -43,6 +47,18 @@ class LoaderProvider with ChangeNotifier {
 
   void setFcmToken(String fcmToken) {
     _fcmToken = fcmToken;
+    notifyListeners();
+  }
+
+  void setSelectedUser(String userId, String userName) {
+    _selectedUserId = userId;
+    _selectedUserName = userName;
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedUserId = null;
+    _selectedUserName = '';
     notifyListeners();
   }
 }

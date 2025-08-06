@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
+import 'package:vdp_poc_new/widgets/delete_users_dropdown_widget.dart';
 
 class DeleteUserWidget extends StatefulWidget {
   const DeleteUserWidget({super.key});
@@ -22,19 +23,18 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     final streamState = Provider.of<LoaderProvider>(context);
     FirebaseDatabase database = fbUtils.database;
+    final selectedUserProvider = Provider.of<LoaderProvider>(context);
+    name = selectedUserProvider.selectedUserName;
+
 
     return Column(
       children: [
-        TextField(
-          onChanged: (value) {
-            name = value;
-          },
-          decoration: InputDecoration(hintText: 'Enter User Name'),
-        ),
+        DeleteUsersDropdownWidget(),
         GestureDetector(
           onTap: () async {
+            loaderProvider.showLoader();
             setState(() {
-              loaderProvider.showLoader();
+              name = selectedUserProvider.selectedUserName;
             });
             try {
               DatabaseReference deleteUsers = database.ref(

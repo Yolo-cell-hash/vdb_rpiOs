@@ -60,6 +60,7 @@ dependencies:
   firebase_database: ^11.3.9
   firebase_core: ^3.15.1
   cloud_firestore: ^5.6.12
+  drop_down_search_field: ^1.1.3
 
 
 
