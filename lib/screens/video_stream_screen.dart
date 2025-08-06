@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:animate_do/animate_do.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
@@ -14,13 +12,9 @@ import 'package:flutter/services.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:vdp_poc_new/utils/loader_provider.dart';
-import 'package:video_player/video_player.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 import 'package:vdp_poc_new/utils/janus_webrtc_client.dart';
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:vdp_poc_new/widgets/full_screen_video_view.dart';
 
@@ -159,328 +153,342 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
       builder: (context, loaderProvider, child) {
         return ModalProgressHUD(
           inAsyncCall: loaderProvider.isLoading,
-          child: Scaffold(
-            appBar: AppBar(
-              toolbarHeight: 90,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue, Colors.lightBlueAccent],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
+          child: PopScope(
+            onPopInvokedWithResult: (didPop, result) async {
+              if (didPop) {
+                loaderProvider.showLoader();
+                await _client.disconnect();
+                DatabaseReference userResponseFieldRef = database.ref(
+                  '/poc_pings/sendFeed',
+                );
+                try {
+                  await userResponseFieldRef.set(false);
+                  loaderProvider.hideLoader();
+                } catch (e) {
+                  print('Error updating user response to false: $e');
+                  loaderProvider.hideLoader();
+                }
+              }
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                toolbarHeight: 90,
+                flexibleSpace: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue, Colors.lightBlueAccent],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                    ),
                   ),
                 ),
-              ),
-              leading: Builder(
-                builder:
-                    (context) => IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await _client.disconnect();
-                        DatabaseReference userResponseFieldRef = database.ref(
-                          '/poc_pings/sendFeed',
-                        );
-                        try {
-                          await userResponseFieldRef.set(false);
-                          print(
-                            'User response updated to true in Firebase at /updates/userResponse',
+                leading: Builder(
+                  builder:
+                      (context) => IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _client.disconnect();
+                          DatabaseReference userResponseFieldRef = database.ref(
+                            '/poc_pings/sendFeed',
                           );
-                        } catch (e) {
-                          print('Error updating user response to true: $e');
-                        }
-                      },
-                    ),
+                          try {
+                            await userResponseFieldRef.set(false);
+                            print(
+                              'User response updated to true in Firebase at /updates/userResponse',
+                            );
+                          } catch (e) {
+                            print('Error updating user response to true: $e');
+                          }
+                        },
+                      ),
+                ),
+                title: const Text(
+                  'Live Feed',
+                  style: TextStyle(color: Colors.white, fontSize: 20),
+                ),
+                centerTitle: true,
               ),
-              title: const Text(
-                'Live Feed',
-                style: TextStyle(color: Colors.white, fontSize: 20),
-              ),
-              centerTitle: true,
-            ),
-            body: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 25.0,
-                vertical: 15.0,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Center(
-                    child: Text(
-                      'Main Door',
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w700,
+              body: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25.0,
+                  vertical: 15.0,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Main Door',
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 30),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Visibility(
-                        visible: isConnectVisible,
-                        child: Visibility(
-                          visible: isStreamStarted ? false : true,
-                          child: HomeScreenFuncButton(
-                            btnLabel: 'Watch Feed',
-                            iconData: Icons.video_call,
-                            callBack: () {
+                    SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Visibility(
+                          visible: isConnectVisible,
+                          child: Visibility(
+                            visible: isStreamStarted ? false : true,
+                            child: HomeScreenFuncButton(
+                              btnLabel: 'Watch Feed',
+                              iconData: Icons.video_call,
+                              callBack: () {
+                                try {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.confirm,
+                                    title: 'Alert',
+                                    text:
+                                        'Do you want to view the stream on $ip ?',
+                                    confirmBtnColor: Colors.green,
+                                    confirmBtnText: 'Yes',
+                                    cancelBtnText: 'No',
+                                    onConfirmBtnTap: () async {
+                                      Navigator.pop(context);
+                                      _watchStream();
+
+                                      DatabaseReference userResponseFieldRef =
+                                          database.ref('/poc_pings/sendFeed');
+                                      try {
+                                        await userResponseFieldRef.set(true);
+                                        print(
+                                          'User response updated to true in Firebase at /updates/userResponse',
+                                        );
+                                        setState(() {
+                                          isStreamStarted = true;
+                                        });
+                                      } catch (e) {
+                                        print(
+                                          'Error updating user response to true: $e',
+                                        );
+                                      }
+                                    },
+                                    onCancelBtnTap: () async {
+                                      Navigator.pop(context);
+                                      DatabaseReference userResponseFieldRef =
+                                          database.ref('/poc_pings/sendFeed');
+
+                                      try {
+                                        await userResponseFieldRef.set(true);
+                                        print(
+                                          'User response updated to true in Firebase at /updates/userResponse',
+                                        );
+                                      } catch (e) {
+                                        print(
+                                          'Error updating user response to true: $e',
+                                        );
+                                      }
+                                    },
+                                  );
+                                } catch (e) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Oops...',
+                                    text: 'No Image to save',
+                                    confirmBtnColor: const Color(0xFFE30A17),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Visibility(
+                      visible: isStreamStarted ? false : true,
+                      child: SizedBox(height: 30),
+                    ),
+                    if (_connected && isStreamStarted)
+                      Container(
+                        margin: EdgeInsets.all(0.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blueAccent, width: 5),
+                        ),
+                        child: SizedBox(
+                          width: double.maxFinite,
+                          height: MediaQuery.of(context).size.height * 0.35,
+                          child: InteractiveViewer(
+                            minScale: 1.0,
+                            maxScale: 4.0,
+                            child: Stack(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _showControls = !_showControls;
+                                    });
+                                    if (_showControls) {
+                                      _hideControlsTimer?.cancel();
+                                      _hideControlsTimer = Timer(
+                                        Duration(milliseconds: 2500),
+                                        () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _showControls = false;
+                                            });
+                                          }
+                                        },
+                                      );
+                                    }
+                                  },
+                                  child: RTCVideoView(
+                                    _remoteRenderer,
+                                    filterQuality: FilterQuality.high,
+                                    objectFit:
+                                        RTCVideoViewObjectFit
+                                            .RTCVideoViewObjectFitCover,
+                                    mirror: false,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: Flash(
+                                    animate: true,
+                                    infinite: true,
+                                    child: Row(
+                                      children:[ Icon(
+                                        Icons.circle,
+                                        color: Colors.red,
+                                        size: 18,
+                                      ),
+                                      Text(' Live',style: TextStyle(color: Colors.red,fontSize: 15) ,)
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (_showControls)
+                                  Positioned(
+                                    bottom: 10,
+                                    right: 10,
+                                    child: Container(
+                                      color: Colors.black26,
+                                      child: IconButton(
+                                        icon: Icon(
+                                          Icons.fullscreen,
+                                          color: Colors.white,
+                                          size: 30,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (_) => FullScreenVideoView(
+                                                    renderer: _remoteRenderer,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    SizedBox(height: 30),
+
+                    Visibility(
+                      visible: isStreamStarted,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          HomeScreenFuncButton(
+                            btnLabel: 'Unlock',
+                            iconData: Icons.door_front_door,
+                            callBack: () async {
+                              loaderProvider.showLoader();
+                              DatabaseReference userResponseFieldRef = database
+                                  .ref('/poc_pings/unlockDoor');
                               try {
-                                QuickAlert.show(
-                                  context: context,
-                                  type: QuickAlertType.confirm,
-                                  title: 'Alert',
-                                  text:
-                                      'Do you want to view the stream on $ip ?',
-                                  confirmBtnColor: Colors.green,
-                                  confirmBtnText: 'Yes',
-                                  cancelBtnText: 'No',
-                                  onConfirmBtnTap: () async {
-                                    Navigator.pop(context);
-                                    _watchStream();
-
-                                    DatabaseReference userResponseFieldRef =
-                                        database.ref('/poc_pings/sendFeed');
-                                    try {
-                                      await userResponseFieldRef.set(true);
-                                      print(
-                                        'User response updated to true in Firebase at /updates/userResponse',
-                                      );
-                                      setState(() {
-                                        isStreamStarted = true;
-                                      });
-                                    } catch (e) {
-                                      print(
-                                        'Error updating user response to true: $e',
-                                      );
-                                    }
-                                  },
-                                  onCancelBtnTap: () async {
-                                    Navigator.pop(context);
-                                    DatabaseReference userResponseFieldRef =
-                                        database.ref('/poc_pings/sendFeed');
-
-                                    try {
-                                      await userResponseFieldRef.set(true);
-                                      print(
-                                        'User response updated to true in Firebase at /updates/userResponse',
-                                      );
-                                    } catch (e) {
-                                      print(
-                                        'Error updating user response to true: $e',
-                                      );
-                                    }
-                                  },
+                                await userResponseFieldRef.set(true);
+                                print(
+                                  'User response updated to true in Firebase at /updates/openDoor',
                                 );
+                                loaderProvider.hideLoader();
                               } catch (e) {
+                                loaderProvider.hideLoader();
+
                                 QuickAlert.show(
                                   context: context,
                                   type: QuickAlertType.error,
                                   title: 'Oops...',
-                                  text: 'No Image to save',
+                                  text: 'Failed to Unlock Door',
                                   confirmBtnColor: const Color(0xFFE30A17),
                                 );
                               }
                             },
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Visibility(
-                    visible: isStreamStarted ? false : true,
-                    child: SizedBox(height: 30),
-                  ),
-                  if (_connected && isStreamStarted)
-                    Container(
-                      margin: EdgeInsets.all(0.0),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blueAccent, width: 5),
-                      ),
-                      child: SizedBox(
-                        width: double.maxFinite,
-                        height: MediaQuery.of(context).size.height * 0.35,
-                        child: InteractiveViewer(
-                          minScale: 1.0,
-                          maxScale: 4.0,
-                          child: Stack(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _showControls = !_showControls;
-                                  });
-                                  if (_showControls) {
-                                    _hideControlsTimer?.cancel();
-                                    _hideControlsTimer = Timer(
-                                      Duration(milliseconds: 2500),
-                                      () {
-                                        if (mounted) {
-                                          setState(() {
-                                            _showControls = false;
-                                          });
-                                        }
-                                      },
+                          HomeScreenFuncButton(
+                            btnLabel: 'Capture',
+                            iconData: Icons.camera,
+                            callBack: () async {
+                              try {
+                                if (data != null) {
+                                  print(data);
+                                  Uint8List uint8List = Uint8List.fromList(data);
+                                  final tempDir = await getTemporaryDirectory();
+                                  final file =
+                                      await File(
+                                        '${tempDir.path}/image.jpg',
+                                      ).create();
+                                  await file.writeAsBytes(uint8List);
+                                  final result =
+                                      await ImageGallerySaverPlus.saveFile(
+                                        file.path,
+                                      );
+                                  if (result['isSuccess']) {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.success,
+                                      title: 'Success',
+                                      text: 'Image Saved Successfully',
+                                      confirmBtnColor: Colors.green,
+                                    );
+                                  } else {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.error,
+                                      title: 'Oops...',
+                                      text: "Failed to save the image",
+                                      confirmBtnColor: const Color(0xFFE30A17),
                                     );
                                   }
-                                },
-                                child: RTCVideoView(
-                                  _remoteRenderer,
-                                  filterQuality: FilterQuality.high,
-                                  objectFit:
-                                      RTCVideoViewObjectFit
-                                          .RTCVideoViewObjectFitCover,
-                                  mirror: false,
-                                ),
-                              ),
-                              Positioned(
-                                top: 10,
-                                right: 10,
-                                child: Flash(
-                                  animate: true,
-                                  infinite: true,
-                                  child: Row(
-                                    children:[ Container(
-                                      color: Colors.black26,
-                                      child:
-                                      Icon(
-                                        Icons.circle,
-                                        color: Colors.red,
-                                        size: 18,
-                                      ),
-                                    ),
-                                    Text(' Live',style: TextStyle(color: Colors.red,fontSize: 15) ,)
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (_showControls)
-                                Positioned(
-                                  bottom: 10,
-                                  right: 10,
-                                  child: Container(
-                                    color: Colors.black26,
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.fullscreen,
-                                        color: Colors.white,
-                                        size: 30,
-                                      ),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (_) => FullScreenVideoView(
-                                                  renderer: _remoteRenderer,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: 30),
-
-                  Visibility(
-                    visible: isStreamStarted,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        HomeScreenFuncButton(
-                          btnLabel: 'Unlock',
-                          iconData: Icons.door_front_door,
-                          callBack: () async {
-                            loaderProvider.showLoader();
-                            DatabaseReference userResponseFieldRef = database
-                                .ref('/poc_pings/unlockDoor');
-                            try {
-                              await userResponseFieldRef.set(true);
-                              print(
-                                'User response updated to true in Firebase at /updates/openDoor',
-                              );
-                              loaderProvider.hideLoader();
-                            } catch (e) {
-                              loaderProvider.hideLoader();
-
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.error,
-                                title: 'Oops...',
-                                text: 'Failed to Unlock Door',
-                                confirmBtnColor: const Color(0xFFE30A17),
-                              );
-                            }
-                          },
-                        ),
-                        HomeScreenFuncButton(
-                          btnLabel: 'Capture',
-                          iconData: Icons.camera,
-                          callBack: () async {
-                            try {
-                              if (data != null) {
-                                print(data);
-                                Uint8List uint8List = Uint8List.fromList(data);
-                                final tempDir = await getTemporaryDirectory();
-                                final file =
-                                    await File(
-                                      '${tempDir.path}/image.jpg',
-                                    ).create();
-                                await file.writeAsBytes(uint8List);
-                                final result =
-                                    await ImageGallerySaverPlus.saveFile(
-                                      file.path,
-                                    );
-                                if (result['isSuccess']) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.success,
-                                    title: 'Success',
-                                    text: 'Image Saved Successfully',
-                                    confirmBtnColor: Colors.green,
-                                  );
                                 } else {
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.error,
                                     title: 'Oops...',
-                                    text: "Failed to save the image",
+                                    text: 'No Image to save',
                                     confirmBtnColor: const Color(0xFFE30A17),
                                   );
                                 }
-                              } else {
-                                QuickAlert.show(
-                                  context: context,
-                                  type: QuickAlertType.error,
-                                  title: 'Oops...',
-                                  text: 'No Image to save',
-                                  confirmBtnColor: const Color(0xFFE30A17),
-                                );
+                              } catch (e) {
+                                print('Error: $e');
                               }
-                            } catch (e) {
-                              print('Error: $e');
-                            }
-                          },
-                        ),
-                        HomeScreenFuncButton(
-                          btnLabel: 'Record',
-                          iconData: Icons.emergency_recording,
-                          callBack: () {
-                            print('Started Recording');
-                          },
-                        ),
-                      ],
+                            },
+                          ),
+                          HomeScreenFuncButton(
+                            btnLabel: 'Record',
+                            iconData: Icons.emergency_recording,
+                            callBack: () {
+                              print('Started Recording');
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

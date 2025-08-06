@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
@@ -98,207 +99,223 @@ class _AddUserWidgetState extends State<AddUserWidget> {
     super.dispose();
   }
 
+  @override
   Widget build(BuildContext context) {
     String ip = Provider.of<LoaderProvider>(context, listen: false).ip;
     FirebaseDatabase database = fbUtils.database;
-
-    return Column(
-      children: [
-        Visibility(
-          visible: !isStreamStarted,
-          child: TextField(
-            onChanged: (value) {
-              name = value;
-            },
-            decoration: InputDecoration(hintText: 'Enter User Name'),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) async {
+        final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+        if (didPop) {
+          loaderProvider.showLoader();
+          await _client.disconnect();
+          DatabaseReference userResponseFieldRef = database.ref(
+            '/poc_pings/sendFeed',
+          );
+          try {
+            await userResponseFieldRef.set(false);
+            loaderProvider.hideLoader();
+          } catch (e) {
+            print('Error updating user response to false: $e');
+            loaderProvider.hideLoader();
+          }
+        }
+      },
+      child: Column(
+        children: [
+          Visibility(
+            visible: !isStreamStarted,
+            child: TextField(
+              onChanged: (value) {
+                name = value;
+              },
+              decoration: InputDecoration(hintText: 'Enter User Name'),
+            ),
           ),
-        ),
-        Visibility(
-          visible: !isStreamStarted,
-          child: GestureDetector(
-            onTap: () {
-              QuickAlert.show(
-                context: context,
-                type: QuickAlertType.confirm,
-                title: 'Add User',
-                text: 'Are you sure you want to add user with name - $name ?',
-                confirmBtnColor: Colors.green,
-                confirmBtnText: 'Yes',
-                cancelBtnText: 'No',
-                onConfirmBtnTap: () async {
-                  final loaderProvider = Provider.of<LoaderProvider>(
-                    context,
-                    listen: false,
-                  );
-                  Navigator.pop(context);
-                  loaderProvider.showLoader();
-                  try {
-                    DatabaseReference userResponseFieldRef = database.ref(
-                      '/poc_pings/sendFeed',
+          Visibility(
+            visible: !isStreamStarted,
+            child: GestureDetector(
+              onTap: () {
+                QuickAlert.show(
+                  context: context,
+                  type: QuickAlertType.confirm,
+                  title: 'Add User',
+                  text: 'Are you sure you want to add user with name - $name ?',
+                  confirmBtnColor: Colors.green,
+                  confirmBtnText: 'Yes',
+                  cancelBtnText: 'No',
+                  onConfirmBtnTap: () async {
+                    final loaderProvider = Provider.of<LoaderProvider>(
+                      context,
+                      listen: false,
                     );
+                    Navigator.pop(context);
+                    loaderProvider.showLoader();
                     try {
-                      await userResponseFieldRef.set(true);
-                      print(
-                        'User response updated to true in Firebase at /updates/userResponse',
+                      DatabaseReference sendFeedState = database.ref(
+                        '/poc_pings/sendFeed',
                       );
-                      setState(() {
-                        isStreamStarted = true;
-                      });
+                      try {
+                        await sendFeedState.set(true);
+                        if (kDebugMode) {
+                          print(
+                          'User response updated to true in Firebase at /updates/userResponse',
+                        );
+                        }
+                        setState(() {
+                          isStreamStarted = true;
+                        });
+                      } catch (e) {
+                        if (kDebugMode) {
+                          print('Error updating user response to true: $e');
+                        }
+                      }
+                      _watchStream();
+                      loaderProvider.hideLoader();
                     } catch (e) {
-                      print('Error updating user response to true: $e');
+                      print(e);
+                      loaderProvider.hideLoader();
                     }
-
-                    ////------------------------------------ ISSUE WITH INIT CONNECTION
-                    // _client = JanusWebRTCClient('ws://[$ip]:8188');
-                    // await connectOnPageInit();
-                    // await Future.delayed(const Duration(seconds: 2));
-
-                    _watchStream();
-
-                    loaderProvider.hideLoader();
-                  } catch (e) {
-                    print(e);
-                    loaderProvider.hideLoader();
-                  }
-                },
-                onCancelBtnTap: () {
-                  Navigator.pop(context);
-                },
-              );
-            },
-            child: Container(
-              margin: const EdgeInsets.only(top: 25, bottom: 20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.blue, Colors.lightBlueAccent],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
+                  },
+                  onCancelBtnTap: () {
+                    Navigator.pop(context);
+                  },
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.only(top: 25, bottom: 20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.blue, Colors.lightBlueAccent],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              width: double.infinity,
-              height: 50,
-              alignment: Alignment.center,
-              child: Text(
-                'Confirm Name',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        if (_connected && isStreamStarted)
-          Container(
-            margin: EdgeInsets.all(0.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.blueAccent, width: 5),
-            ),
-            child: SizedBox(
-              width: 350,
-              height: 250,
-              child: InteractiveViewer(
-                minScale: 1.0,
-                maxScale: 4.0,
-                child: RTCVideoView(_remoteRenderer),
+                width: double.infinity,
+                height: 50,
+                alignment: Alignment.center,
+                child: Text(
+                  'Confirm Name',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
               ),
             ),
           ),
+          const SizedBox(height: 20),
+          if (_connected && isStreamStarted)
+            Container(
+              margin: EdgeInsets.all(0.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blueAccent, width: 5),
+              ),
+              child: SizedBox(
+                width: 350,
+                height: 250,
+                child: InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: RTCVideoView(_remoteRenderer),
+                ),
+              ),
+            ),
 
-        if (_connected && isStreamStarted)
-          GestureDetector(
-            onTap: () async {
-              final loaderProvider = Provider.of<LoaderProvider>(
-                context,
-                listen: false,
-              );
-              loaderProvider.showLoader();
-              try {
-                DatabaseReference userResponseFieldRef = database.ref(
-                  '/poc_pings/addUsers',
+          if (_connected && isStreamStarted)
+            GestureDetector(
+              onTap: () async {
+                final loaderProvider = Provider.of<LoaderProvider>(
+                  context,
+                  listen: false,
                 );
+                loaderProvider.showLoader();
+                try {
+                  DatabaseReference userResponseFieldRef = database.ref(
+                    '/poc_pings/addUsers',
+                  );
 
-                DatabaseReference showFeedField = database.ref(
-                  '/poc_pings/sendFeed',
-                );
+                  DatabaseReference showFeedField = database.ref(
+                    '/poc_pings/sendFeed',
+                  );
 
-                DatabaseReference confirmClick = database.ref(
-                  '/poc_pings/confirm',
-                );
+                  DatabaseReference confirmClick = database.ref(
+                    '/poc_pings/confirm',
+                  );
 
-                DatabaseReference ack = database.ref(
-                  '/poc_pings/ack',
-                );
+                  DatabaseReference ack = database.ref(
+                    '/poc_pings/ack',
+                  );
 
-                await userResponseFieldRef.set(name);
-                await showFeedField.set(false);
-                await confirmClick.set(true);
+                  await userResponseFieldRef.set(name);
+                  await showFeedField.set(false);
+                  await confirmClick.set(true);
 
-                final DatabaseEvent event = await ack.onValue.skip(1).first;
-                final DataSnapshot snapshot = event.snapshot;
+                  final DatabaseEvent event = await ack.onValue.skip(1).first;
+                  final DataSnapshot snapshot = event.snapshot;
 
-                if (snapshot.exists) {
-                  var data = snapshot.value.toString();
-                  if(data.isNotEmpty && data.contains('Success')){
-                    loaderProvider.hideLoader();
-                    QuickAlert.show(
-                      context: context,
-                      type: QuickAlertType.success,
-                      title: 'Success',
-                      text: data.toString(),
-                      confirmBtnText: 'OK',
-                      onConfirmBtnTap: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                    );
-                  }else if(data.isNotEmpty && data.contains('Error')){
-                    loaderProvider.hideLoader();
-                    QuickAlert.show(
-                      context: context,
-                      type: QuickAlertType.error,
-                      title: 'Error',
-                      text: data.toString(),
-                      confirmBtnText: 'OK',
-                      onConfirmBtnTap: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                    );
+                  if (snapshot.exists) {
+                    var data = snapshot.value.toString();
+                    if(data.isNotEmpty && data.contains('Success')){
+                      loaderProvider.hideLoader();
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.success,
+                        title: 'Success',
+                        text: data.toString(),
+                        confirmBtnText: 'OK',
+                        onConfirmBtnTap: () {
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }else if(data.isNotEmpty && data.contains('Error')){
+                      loaderProvider.hideLoader();
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.error,
+                        title: 'Error',
+                        text: data.toString(),
+                        confirmBtnText: 'OK',
+                        onConfirmBtnTap: () {
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }
+                  } else {
+                    print('No valid ACK received.');
                   }
-                } else {
-                  print('No valid ACK received.');
+
+                  print(
+                    'User response updated to true in Firebase at /updates/addUsers',
+                  );
+                  loaderProvider.hideLoader();
+
+                } catch (e) {
+                  loaderProvider.hideLoader();
+                  print(e);
                 }
-
-                print(
-                  'User response updated to true in Firebase at /updates/addUsers',
-                );
-                loaderProvider.hideLoader();
-
-              } catch (e) {
-                loaderProvider.hideLoader();
-                print(e);
-              }
-            },
-            child: Container(
-              margin: const EdgeInsets.only(top: 25, bottom: 20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.blue, Colors.lightBlueAccent],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
+              },
+              child: Container(
+                margin: const EdgeInsets.only(top: 25, bottom: 20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.blue, Colors.lightBlueAccent],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              width: double.infinity,
-              height: 50,
-              alignment: Alignment.center,
-              child: Text(
-                'Add User',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                width: double.infinity,
+                height: 50,
+                alignment: Alignment.center,
+                child: Text(
+                  'Add User',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
