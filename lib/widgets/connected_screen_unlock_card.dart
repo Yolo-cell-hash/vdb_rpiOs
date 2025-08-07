@@ -36,8 +36,6 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
   Widget build(BuildContext context) {
     final macAddress = Provider.of<LoaderProvider>(context).macAddress;
 
-    String unlockCmd =
-        '2eeNc7rXbowymsXQeYllqPx2QjbkyZ+8g4LzSCSym6W+JlSk4AH6vu9LVkr7BHzvJI8dryirJUGjgbeIxO4pxGEX++69abJMkaR8TnJcoN8=';
 
     return SizedBox(
       width: double.infinity,

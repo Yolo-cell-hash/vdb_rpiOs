@@ -44,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () async {
                       Navigator.pop(context);
+                      Navigator.pop(context);
                     },
                   ),
             ),

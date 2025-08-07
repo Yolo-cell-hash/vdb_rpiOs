@@ -2,20 +2,33 @@ import 'package:flutter/material.dart';
 
 class LoaderProvider with ChangeNotifier {
   bool _isLoading = false;
+  bool _otpSent = false;
 
   String _macAddress = '';
   String _ip = '';
   String _fcmToken = '';
   String _selectedUserName = '';
   String? _selectedUserId;
+  String _phoneNumber = '';
+  String _accessToekn = '';
+  String _lockID = '';
 
 
+  dynamic _otp ;
+
+  bool get otpSent => _otpSent;
   bool get isLoading => _isLoading;
   String get macAddress => _macAddress;
   String get ip => _ip;
   String get fcmToken => _fcmToken;
   String get selectedUserName => _selectedUserName;
   String? get selectedUserId => _selectedUserId;
+  String get phoneNumber => _phoneNumber;
+  String get accessToken => _accessToekn;
+  String get lockID => _lockID;
+
+
+  dynamic get otp => _otp;
 
   bool _isStreamSubscribed = false;
 
@@ -40,6 +53,11 @@ class LoaderProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  set lockID(String newValue) {
+    _lockID = newValue;
+    notifyListeners();
+  }
+
   void setIp(String ip) {
     _ip = ip;
     notifyListeners();
@@ -61,4 +79,25 @@ class LoaderProvider with ChangeNotifier {
     _selectedUserName = '';
     notifyListeners();
   }
+
+  set otpSent(bool newValue) {
+    _otpSent = newValue;
+    notifyListeners();
+  }
+
+  set otp(dynamic newValue) {
+    _otp = newValue;
+    notifyListeners();
+  }
+
+  set phoneNumber(String newValue) {
+    _phoneNumber = newValue;
+    notifyListeners();
+  }
+
+  set accessToken(String newValue) {
+    _accessToekn = newValue;
+    notifyListeners();
+  }
+
 }

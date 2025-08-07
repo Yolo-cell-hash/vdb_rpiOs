@@ -15,13 +15,12 @@ class DeleteUserWidget extends StatefulWidget {
 }
 
 class _DeleteUserWidgetState extends State<DeleteUserWidget> {
-  @override
   late String name;
   FbUtils fbUtils = FbUtils();
 
+  @override
   Widget build(BuildContext context) {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
-    final streamState = Provider.of<LoaderProvider>(context);
     FirebaseDatabase database = fbUtils.database;
     final selectedUserProvider = Provider.of<LoaderProvider>(context);
     name = selectedUserProvider.selectedUserName;
