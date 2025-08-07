@@ -122,7 +122,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
             ),
             child: SizedBox(
               width: 350,
-              height: 450,
+              height: 275,
               child: InteractiveViewer(
                 minScale: 1.0,
                 maxScale: 4.0,

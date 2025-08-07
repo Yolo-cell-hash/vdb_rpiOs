@@ -1,13 +1,11 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:vdp_poc_new/screens/home_screen.dart';
 import 'package:vdp_poc_new/screens/splash_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
-import 'package:provider/provider.dart';
 
 
 void main() async{

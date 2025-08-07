@@ -211,7 +211,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
               ),
               child: SizedBox(
                 width: 350,
-                height: 250,
+                height: 275,
                 child: InteractiveViewer(
                   minScale: 1.0,
                   maxScale: 4.0,
