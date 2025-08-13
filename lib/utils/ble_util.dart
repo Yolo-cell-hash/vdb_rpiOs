@@ -17,6 +17,7 @@ class BleUtil {
       Permission.bluetoothScan,
       Permission.bluetoothAdvertise,
       Permission.location,
+      Permission.storage,
     ];
     await permissions.request();
   }

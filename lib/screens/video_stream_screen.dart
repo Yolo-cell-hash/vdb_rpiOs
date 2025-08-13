@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:animate_do/animate_do.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
@@ -27,25 +29,38 @@ class VideoStreamScreen extends StatefulWidget {
 }
 
 class _VideoStreamScreenState extends State<VideoStreamScreen> {
-  dynamic data;
   late String ip;
+  String? _recordedFilePath;
   BleUtil bleUtil = BleUtil();
   bool isStremVisible = false;
   bool isStreamStarted = false;
   String counterValue = '0';
   bool isDisconnectVisible = false;
   bool isConnectVisible = true;
+  bool _isRecording = false;
+  int _recordingDuration = 0;
+  Timer? _recordingTimer;
+
   FbUtils fbUtils = FbUtils();
   WebApi webApi = WebApi();
+  GlobalKey _repaintBoundaryKey = GlobalKey();
 
   bool _connected = false;
   String _status = 'Disconnected';
   late JanusWebRTCClient _client;
+
+  MediaRecorder? _mediaRecorder;
   RTCVideoRenderer _localRenderer = RTCVideoRenderer();
   RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
 
   bool _showControls = false;
   Timer? _hideControlsTimer;
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
 
   void _connect() async {
     try {
@@ -139,6 +154,8 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
 
   @override
   void dispose() {
+    _mediaRecorder?.stop();
+    _recordingTimer?.cancel();
     _client.disconnect();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
@@ -311,7 +328,10 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                       Container(
                         margin: EdgeInsets.all(0.0),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blueAccent, width: 5),
+                          border: Border.all(
+                            color: Colors.blueAccent,
+                            width: 5,
+                          ),
                         ),
                         child: SizedBox(
                           width: double.maxFinite,
@@ -340,13 +360,16 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       );
                                     }
                                   },
-                                  child: RTCVideoView(
-                                    _remoteRenderer,
-                                    filterQuality: FilterQuality.high,
-                                    objectFit:
-                                        RTCVideoViewObjectFit
-                                            .RTCVideoViewObjectFitCover,
-                                    mirror: false,
+                                  child: RepaintBoundary(
+                                    key: _repaintBoundaryKey,
+                                    child: RTCVideoView(
+                                      _remoteRenderer,
+                                      filterQuality: FilterQuality.high,
+                                      objectFit:
+                                          RTCVideoViewObjectFit
+                                              .RTCVideoViewObjectFitCover,
+                                      mirror: false,
+                                    ),
                                   ),
                                 ),
                                 Positioned(
@@ -356,16 +379,55 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                     animate: true,
                                     infinite: true,
                                     child: Row(
-                                      children:[ Icon(
-                                        Icons.circle,
-                                        color: Colors.red,
-                                        size: 18,
-                                      ),
-                                      Text(' Live',style: TextStyle(color: Colors.red,fontSize: 15) ,)
+                                      children: [
+                                        Icon(
+                                          Icons.circle,
+                                          color: Colors.red,
+                                          size: 18,
+                                        ),
+                                        Text(
+                                          ' Live',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 15,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
+                                if (_isRecording)
+                                  Positioned(
+                                    top: 10,
+                                    left: 10,
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            color: Colors.red,
+                                            size: 12,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            _formatDuration(_recordingDuration),
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 if (_showControls)
                                   Positioned(
                                     bottom: 10,
@@ -414,7 +476,6 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                               try {
                                 await userResponseFieldRef.set(true);
                                 int value = await webApi.unlockDoor(context);
-
                               } catch (e) {
                                 loaderProvider.hideLoader();
 
@@ -433,55 +494,183 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                             iconData: Icons.camera,
                             callBack: () async {
                               try {
-                                if (data != null) {
-                                  print(data);
-                                  Uint8List uint8List = Uint8List.fromList(data);
-                                  final tempDir = await getTemporaryDirectory();
-                                  final file =
-                                      await File(
-                                        '${tempDir.path}/image.jpg',
-                                      ).create();
-                                  await file.writeAsBytes(uint8List);
+                                // Create a key to identify the video widget
+                                final GlobalKey repaintBoundaryKey =
+                                    GlobalKey();
+
+                                // We need to briefly rebuild the widget with this key
+                                setState(() {
+                                  _repaintBoundaryKey = repaintBoundaryKey;
+                                });
+
+                                // Wait for the next frame to ensure the widget is built
+                                await Future.delayed(
+                                  Duration(milliseconds: 100),
+                                );
+
+                                // Capture the video frame
+                                RenderRepaintBoundary boundary =
+                                    repaintBoundaryKey.currentContext!
+                                            .findRenderObject()
+                                        as RenderRepaintBoundary;
+                                ui.Image image = await boundary.toImage(
+                                  pixelRatio: 3.0,
+                                );
+                                ByteData? byteData = await image.toByteData(
+                                  format: ui.ImageByteFormat.png,
+                                );
+                                Uint8List imageBytes =
+                                    byteData!.buffer.asUint8List();
+
+                                // Save to gallery
+                                final result =
+                                    await ImageGallerySaverPlus.saveImage(
+                                      imageBytes,
+                                      quality: 100,
+                                      name:
+                                          'door_capture_${DateTime.now().millisecondsSinceEpoch}',
+                                    );
+
+                                // Show success message
+                                if (result != null && result['isSuccess']) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.success,
+                                    title: 'Success',
+                                    text: 'Image saved to gallery',
+                                  );
+                                } else {
+                                  throw Exception('Failed to save image');
+                                }
+                              } catch (e) {
+                                print('Error: $e');
+                                QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: 'Oops...',
+                                  text: 'Failed to capture image',
+                                  confirmBtnColor: const Color(0xFFE30A17),
+                                );
+                              }
+                            },
+                          ),
+                          // HomeScreenFuncButton(
+                          //   btnLabel: 'Record',
+                          //   iconData: Icons.emergency_recording,
+                          //   callBack: () {
+                          //     print('Started Recording');
+                          //   },
+                          // ),
+                          HomeScreenFuncButton(
+                            btnLabel: _isRecording ? 'Stop' : 'Record',
+                            iconData:
+                                _isRecording
+                                    ? Icons.stop
+                                    : Icons.emergency_recording,
+                            callBack: () async {
+                              if (_isRecording) {
+                                // Stop recording
+                                try {
+                                  // Stop the recording timer
+                                  _recordingTimer?.cancel();
+
+                                  await _mediaRecorder?.stop();
+
+                                  // Save recording to gallery
                                   final result =
                                       await ImageGallerySaverPlus.saveFile(
-                                        file.path,
+                                        _recordedFilePath!,
+                                        name:
+                                            'door_recording_${DateTime.now().millisecondsSinceEpoch}',
                                       );
-                                  if (result['isSuccess']) {
+
+                                  if (result != null && result['isSuccess']) {
                                     QuickAlert.show(
                                       context: context,
                                       type: QuickAlertType.success,
                                       title: 'Success',
-                                      text: 'Image Saved Successfully',
-                                      confirmBtnColor: Colors.green,
+                                      text: 'Video saved to gallery',
                                     );
                                   } else {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: 'Oops...',
-                                      text: "Failed to save the image",
-                                      confirmBtnColor: const Color(0xFFE30A17),
-                                    );
+                                    throw Exception('Failed to save video');
                                   }
-                                } else {
+
+                                  setState(() {
+                                    _isRecording = false;
+                                    _mediaRecorder = null;
+                                    _recordingDuration = 0;
+                                  });
+                                } catch (e) {
+                                  print('Error stopping recording: $e');
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.error,
                                     title: 'Oops...',
-                                    text: 'No Image to save',
+                                    text: 'Failed to save recording',
                                     confirmBtnColor: const Color(0xFFE30A17),
                                   );
                                 }
-                              } catch (e) {
-                                print('Error: $e');
+                              } else {
+                                // Start recording
+                                try {
+                                  if (_remoteRenderer.srcObject == null) {
+                                    throw Exception(
+                                      'No video stream to record',
+                                    );
+                                  }
+
+                                  // Create temp file for recording
+                                  Directory tempDir =
+                                      await getTemporaryDirectory();
+                                  String tempPath =
+                                      '${tempDir.path}/temp_recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
+                                  _recordedFilePath = tempPath;
+
+                                  // Initialize media recorder
+                                  _mediaRecorder = MediaRecorder();
+                                  final videoTrack =
+                                      _remoteRenderer.srcObject!
+                                          .getVideoTracks()
+                                          .first;
+
+                                  await _mediaRecorder!.start(
+                                    tempPath,
+                                    videoTrack: videoTrack,
+                                  );
+
+                                  // Reset and start the recording timer
+                                  setState(() {
+                                    _isRecording = true;
+                                    _recordingDuration = 0;
+                                  });
+
+                                  _recordingTimer = Timer.periodic(
+                                    Duration(seconds: 1),
+                                    (timer) {
+                                      setState(() {
+                                        _recordingDuration++;
+                                      });
+                                    },
+                                  );
+
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.info,
+                                    title: 'Recording',
+                                    text: 'Video recording started',
+                                    autoCloseDuration: Duration(seconds: 2),
+                                  );
+                                } catch (e) {
+                                  print('Error starting recording: $e');
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Oops...',
+                                    text: 'Failed to start recording',
+                                    confirmBtnColor: const Color(0xFFE30A17),
+                                  );
+                                }
                               }
-                            },
-                          ),
-                          HomeScreenFuncButton(
-                            btnLabel: 'Record',
-                            iconData: Icons.emergency_recording,
-                            callBack: () {
-                              print('Started Recording');
                             },
                           ),
                         ],
