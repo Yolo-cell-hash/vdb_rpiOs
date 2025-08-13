@@ -17,6 +17,7 @@ import 'package:vdp_poc_new/utils/janus_webrtc_client.dart';
 import 'dart:async';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:vdp_poc_new/widgets/full_screen_video_view.dart';
+import 'package:vdp_poc_new/utils/web_api_brain.dart';
 
 class VideoStreamScreen extends StatefulWidget {
   const VideoStreamScreen({super.key});
@@ -35,6 +36,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
   bool isDisconnectVisible = false;
   bool isConnectVisible = true;
   FbUtils fbUtils = FbUtils();
+  WebApi webApi = WebApi();
 
   bool _connected = false;
   String _status = 'Disconnected';
@@ -406,15 +408,13 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                             btnLabel: 'Unlock',
                             iconData: Icons.door_front_door,
                             callBack: () async {
-                              loaderProvider.showLoader();
+                              // loaderProvider.showLoader();
                               DatabaseReference userResponseFieldRef = database
                                   .ref('/poc_pings/unlockDoor');
                               try {
                                 await userResponseFieldRef.set(true);
-                                print(
-                                  'User response updated to true in Firebase at /updates/openDoor',
-                                );
-                                loaderProvider.hideLoader();
+                                int value = await webApi.unlockDoor(context);
+
                               } catch (e) {
                                 loaderProvider.hideLoader();
 

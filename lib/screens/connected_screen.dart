@@ -1,6 +1,9 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:vdp_poc_new/widgets/connected_screen_unlock_card.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/widgets/home_screen_func_button.dart';
@@ -10,6 +13,7 @@ import 'package:vdp_poc_new/screens/logs_screen.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:vdp_poc_new/utils/web_api_brain.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
+import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 
 class ConnectedScreen extends StatefulWidget {
   const ConnectedScreen({super.key});
@@ -20,7 +24,6 @@ class ConnectedScreen extends StatefulWidget {
 
 class _ConnectedScreenState extends State<ConnectedScreen> {
   bool isUnlocked = false;
-
   bool isSwitchOn = false;
   bool positive = false;
   IconData lockIcon = Icons.lock;
@@ -28,7 +31,10 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
   Color lockedIconColor = Colors.red;
   Color unlockedIconColor = Colors.green;
   String statusTag = 'Room is Locked';
+  bool survailanceModeEnabled = false;
+
   WebApi webApi = WebApi();
+  FbUtils fbUtils = FbUtils();
 
   void handleUnlock() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
@@ -68,13 +74,32 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
   void initState() {
     webApi.getLockList(context);
     super.initState();
+
+    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+    FbUtils fbUtils = FbUtils();
+    DatabaseReference survaillanceRef = fbUtils.database.ref('/poc_pings/survailanceModeEnabled');
+
+    survaillanceRef.once().then((DatabaseEvent event) {
+      if (event.snapshot.exists) {
+        bool survaillanceEnabled = event.snapshot.value as bool? ?? false;
+        setState(() {
+          positive = survaillanceEnabled; // Set the toggle state based on Firebase value
+        });
+
+        // Also update the provider state
+        loaderProvider.setSurvailanceMode(survaillanceEnabled);
+      }
+    }).catchError((error) {
+      print('Error fetching surveillance mode: $error');
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final macAddress = Provider.of<LoaderProvider>(context).macAddress;
-    final ip = Provider.of<LoaderProvider>(context).ip;
+    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+    FirebaseDatabase database = fbUtils.database;
     final isLoading = Provider.of<LoaderProvider>(context).isLoading;
+
     return SafeArea(
       child: ModalProgressHUD(
         inAsyncCall: isLoading,
@@ -144,8 +169,110 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                           ),
                           borderWidth: 5.0,
                           height: 55,
-                          onChanged: (b) {
+                          onChanged: (b) async {
                             setState(() => positive = b);
+
+                            if(b){
+                              DatabaseReference survailanceMode = database.ref(
+                                '/poc_pings/survailanceModeEnabled',
+                              );
+
+                              DatabaseReference ack = database.ref(
+                                '/poc_pings/ack',
+                              );
+
+                              final DatabaseEvent event = await ack.onValue.skip(1).first;
+                              final DataSnapshot snapshot = event.snapshot;
+
+                              try{
+                                await survailanceMode.set(true);
+
+                                if (snapshot.exists) {
+                                  var data = snapshot.value.toString();
+                                  if(data.isNotEmpty && data.contains('Success')){
+                                    loaderProvider.hideLoader();
+                                  }else if(data.isNotEmpty && data.contains('Error')){
+                                    loaderProvider.hideLoader();
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.error,
+                                      title: 'Error',
+                                      text: data.toString(),
+                                      confirmBtnText: 'OK',
+                                    );
+                                  }
+                                } else {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Error',
+                                    text: 'Status not received from server.',
+                                    confirmBtnText: 'OK',
+                                  );
+                                }
+                              }catch(e){
+                                QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: 'Error',
+                                  text: 'Failed to set surveillance mode. $e',
+                                  confirmBtnText: 'OK',
+                                  onConfirmBtnTap: () {
+                                    Navigator.pop(context);
+                                    Navigator.pop(context);
+                                  },
+                                );
+                              }
+                            }else{
+                              print('Switch toggled to false: $b');
+                              DatabaseReference survailanceMode = database.ref(
+                                '/poc_pings/survailanceModeEnabled',
+                              );
+
+                              DatabaseReference ack = database.ref(
+                                '/poc_pings/ack',
+                              );
+
+                              final DatabaseEvent event = await ack.onValue.skip(1).first;
+                              final DataSnapshot snapshot = event.snapshot;
+
+                              try{
+                                await survailanceMode.set(false);
+
+                                if (snapshot.exists) {
+                                  var data = snapshot.value.toString();
+                                  if(data.isNotEmpty && data.contains('Success')){
+                                    loaderProvider.hideLoader();
+                                  }else if(data.isNotEmpty && data.contains('Error')){
+                                    loaderProvider.hideLoader();
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.error,
+                                      title: 'Error',
+                                      text: data.toString(),
+                                      confirmBtnText: 'OK',
+                                    );
+                                  }
+                                } else {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Error',
+                                    text: 'Status not received from server.',
+                                    confirmBtnText: 'OK',
+                                  );
+                                }
+
+                              }catch(e){
+                                QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: 'Error',
+                                  text: 'Failed to set surveillance mode. $e',
+                                  confirmBtnText: 'OK',
+                                );
+                              }
+                            }
                           },
                           styleBuilder: (b) => ToggleStyle(
                               indicatorColor: b ? Colors.green : Colors.red),
@@ -209,31 +336,6 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                       ),
                     ],
                   ),
-                  // StreamBuilder(
-                  //     stream: webSocketSingleton.stream,
-                  //     builder: (context, snapshot) {
-                  //       if (snapshot.hasData) {
-                  //         final data = snapshot.data.toString();
-                  //         if (data.contains("incoming call")) {
-                  //           Future.microtask(() {
-                  //             print('Incoming Call');
-                  //             // Navigator.push(
-                  //             //   context,
-                  //             //   MaterialPageRoute(
-                  //             //     builder: (context) => IncomingCallScreen(),
-                  //             //   ),
-                  //             // );
-                  //           });
-                  //         } else if (data.contains('Access Granted')) {
-                  //           String currentTime = DateFormat('yyyy-MM-dd HH:mm')
-                  //               .format(DateTime.now());
-                  //           // Provider.of<LogState>(context, listen: false)
-                  //           //     .addLog(data.toString(), currentTime, 1);
-                  //         }
-                  //       }
-                  //       return Container();
-                  //     }
-                  //     ),
                 ],
               ),
             ),

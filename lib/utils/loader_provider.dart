@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class LoaderProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _otpSent = false;
+  bool _isStreamSubscribed = false;
+  bool _survailanceModeEnabled = false;
 
   String _macAddress = '';
   String _ip = '';
@@ -13,11 +15,12 @@ class LoaderProvider with ChangeNotifier {
   String _accessToekn = '';
   String _lockID = '';
 
-
   dynamic _otp ;
 
   bool get otpSent => _otpSent;
   bool get isLoading => _isLoading;
+  bool get survailanceModeEnabled => _survailanceModeEnabled;
+  bool get isStreamSubscribed => _isStreamSubscribed;
   String get macAddress => _macAddress;
   String get ip => _ip;
   String get fcmToken => _fcmToken;
@@ -27,14 +30,15 @@ class LoaderProvider with ChangeNotifier {
   String get accessToken => _accessToekn;
   String get lockID => _lockID;
 
-
   dynamic get otp => _otp;
 
-  bool _isStreamSubscribed = false;
-
-  bool get isStreamSubscribed => _isStreamSubscribed;
   void setStreamSubscribed(bool value) {
     _isStreamSubscribed = value;
+    notifyListeners();
+  }
+
+  void setSurvailanceMode(bool value) {
+    _survailanceModeEnabled = value;
     notifyListeners();
   }
 
