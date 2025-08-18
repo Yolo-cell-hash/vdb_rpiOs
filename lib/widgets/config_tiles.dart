@@ -15,7 +15,7 @@ class ConfigTiles extends StatelessWidget {
     return Column(
       children: [
         Material(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(0),
           elevation: 3.0,
           child: ListTile(
             title:  Text(
@@ -30,7 +30,8 @@ class ConfigTiles extends StatelessWidget {
             // tileColor: Colors.white,
             shape: RoundedRectangleBorder(
               //<-- SEE HERE
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(0),
+
               side: BorderSide(color: Colors.black),
             ),
 

@@ -88,13 +88,21 @@ class _DeleteUsersDropdownWidgetState extends State<DeleteUsersDropdownWidget> {
               },
               displayAllSuggestionWhenTap: true,
               isMultiSelectDropdown: false,
+
               textFieldConfiguration: TextFieldConfiguration(
                 controller: _controller,
                 autofocus: false,
                 style: DefaultTextStyle.of(
                   context,
                 ).style.copyWith(fontStyle: FontStyle.italic),
-                decoration: InputDecoration(border: OutlineInputBorder()),
+                decoration: InputDecoration(border: OutlineInputBorder(),
+                hintText: 'Select a User',
+                  labelText: 'User Selection',
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                ),
               ),
               suggestionsCallback: (pattern) async {
                 if (pattern.isEmpty) {

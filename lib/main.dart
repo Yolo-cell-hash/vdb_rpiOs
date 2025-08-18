@@ -1,273 +1,346 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
-import 'package:vdp_poc_new/screens/splash_screen.dart';
-import 'package:provider/provider.dart';
-import 'package:vdp_poc_new/utils/loader_provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:vdp_poc_new/screens/video_stream_screen.dart';
+  import 'package:firebase_messaging/firebase_messaging.dart';
+  import 'package:flutter/material.dart';
+  import 'package:vdp_poc_new/screens/splash_screen.dart';
+  import 'package:provider/provider.dart';
+  import 'package:firebase_core/firebase_core.dart';
+  import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
+  import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+  import 'package:vdp_poc_new/utils/loader_provider.dart';
+  import 'package:vdp_poc_new/screens/video_stream_screen.dart';
+  import 'package:vdp_poc_new/screens/connected_screen.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  FlutterLocalNotificationsPlugin();
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print('Background message received: ${message.data}');
+  @pragma('vm:entry-point')
+  Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+    await Firebase.initializeApp();
 
-  // Initialize notifications with response handler for background
-  const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
-  final InitializationSettings initializationSettings =
-  InitializationSettings(android: initializationSettingsAndroid);
+    // Init plugin on background isolate + channel
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+    final InitializationSettings initializationSettings =
+    InitializationSettings(android: initializationSettingsAndroid);
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: handleNotificationResponse,
+    );
 
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: handleNotificationResponse,
-  );
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'stream_channel',
+      'Stream Notifications',
+      description: 'Channel for stream notifications',
+      importance: Importance.high,
+    );
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
 
-  // Create notification channel for background
-  const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'stream_channel',
-    'Stream Notifications',
-    description: 'Channel for stream notifications',
-    importance: Importance.high,
-  );
+    // Decide destination and show a simple notification (no buttons)
+    final wantsConnected =
+        message.data['route'] == 'connected' || message.data['action'] == 'connected';
 
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
+    if (wantsConnected) {
+      await _showNotification(
+        message.data['title'] ?? 'Open Connected',
+        message.data['body'] ?? 'Tap to open Connected',
+        payload: 'route=connected',
+      );
+    } else {
+      // default to stream page if action is stream_request
+      final isStream = message.data['action'] == 'stream_request' || message.data['route'] == 'stream';
+      await _showNotification(
+        message.data['title'] ?? (isStream ? 'Stream Request' : 'Notification'),
+        message.data['body'] ?? (isStream ? 'Tap to view stream' : 'Tap to open'),
+        payload: isStream ? 'route=stream' : null,
+      );
+    }
+  }
 
-  // Show notification with actions
-  if (message.data['action'] == 'stream_request') {
-    await _showActionNotification(
-        message.data['title'] ?? 'Stream Request',
-        message.data['body'] ?? 'Accept to view stream'
+  @pragma('vm:entry-point')
+  void handleNotificationResponse(NotificationResponse response) {
+    final payload = response.payload ?? '';
+    final notifId = response.id ?? 0;
+
+    // Only the default tap exists (no action buttons)
+    if (payload.contains('route=connected')) {
+      _navigateToConnected();
+    } else if (payload.contains('route=stream')) {
+      _navigateToStream();
+    }
+
+    flutterLocalNotificationsPlugin.cancel(notifId);
+  }
+
+  @pragma('vm:entry-point')
+  Future<void> _showNotification(
+      String title,
+      String body, {
+        String? payload,
+      }) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'stream_channel',
+      'Stream Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      color: Color(0xFF2196F3),
+    );
+    const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      details,
+      payload: payload,
     );
   }
-}
 
-@pragma('vm:entry-point')
-void handleNotificationResponse(NotificationResponse response) {
-  print('=== NOTIFICATION RESPONSE HANDLER ===');
-  print('Action ID: ${response.actionId}');
-  print('Notification ID: ${response.id}');
+  Future<void> _initLocalNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+    final InitializationSettings initializationSettings =
+    InitializationSettings(android: initializationSettingsAndroid);
 
-  if (response.actionId == 'ACCEPT') {
-    print('ACCEPT button clicked - Setting flags');
-    MyApp.streamAccepted = true;
-    MyApp.shouldNavigateToStream = true;
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: handleNotificationResponse,
+    );
 
-    // Try immediate navigation
-    final context = MyApp.navigatorKey.currentContext;
-    if (context != null) {
-      print('Navigating immediately to VideoStreamScreen');
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const VideoStreamScreen(),
-        ),
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'stream_channel',
+      'Stream Notifications',
+      description: 'Channel for stream notifications',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
 
+  void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp();
+
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await _initLocalNotifications();
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => LoaderProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  }
+
+  class MyApp extends StatefulWidget {
+    const MyApp({super.key});
+
+    static bool shouldNavigateToConnected = false;
+    static bool shouldNavigateToStream = false;
+    static bool wasBackgroundLaunch = false; // Track if notification came from background
+    static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+    @override
+    State<MyApp> createState() => _MyAppState();
+  }
+
+  // Helpers to navigate from handlers
+  void _navigateToConnected() {
+    final ctx = MyApp.navigatorKey.currentContext;
+    if (ctx != null) {
+      Navigator.of(ctx).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ConnectedScreen()),
             (route) => false,
       );
     } else {
-      print('Context not available, will navigate when app resumes');
-    }
-
-    // Cancel notification
-    flutterLocalNotificationsPlugin.cancel(0);
-
-  } else if (response.actionId == 'DECLINE') {
-    print('DECLINE button clicked');
-    flutterLocalNotificationsPlugin.cancel(0);
-  }
-}
-
-@pragma('vm:entry-point')
-Future<void> _showActionNotification(String title, String body) async {
-  print('Creating notification with actions: $title - $body');
-
-  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    'stream_channel',
-    'Stream Notifications',
-    importance: Importance.max,
-    priority: Priority.high,
-    color: Color(0xFF2196F3),
-    actions: <AndroidNotificationAction>[
-      AndroidNotificationAction('ACCEPT', 'Accept', titleColor: Color(0xFF4CAF50)),
-      AndroidNotificationAction('DECLINE', 'Decline', titleColor: Color(0xFFE53E3E)),
-    ],
-  );
-  const NotificationDetails details = NotificationDetails(android: androidDetails);
-
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    title,
-    body,
-    details,
-  );
-
-  print('Notification with actions shown successfully');
-}
-
-Future<void> _initLocalNotifications() async {
-  print('Initializing local notifications...');
-
-  const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
-  final InitializationSettings initializationSettings =
-  InitializationSettings(android: initializationSettingsAndroid);
-
-  bool? initialized = await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: handleNotificationResponse,
-  );
-
-  print('Local notifications initialized: $initialized');
-
-  // Create notification channel
-  const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'stream_channel',
-    'Stream Notifications',
-    description: 'Channel for stream notifications',
-    importance: Importance.high,
-    playSound: true,
-    enableVibration: true,
-  );
-
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-
-  print('Notification channel created');
-}
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  await _initLocalNotifications();
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => LoaderProvider()),
-      ],
-      child: MyApp(),
-    ),
-  );
-}
-
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
-  static bool streamAccepted = false;
-  static bool shouldNavigateToStream = false;
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  late Future<FirebaseApp> _initialization;
-  FbUtils fbUtils = FbUtils();
-  late DatabaseReference _dbRef1;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-
-    fbUtils.fbPushNotification();
-    fbUtils.getNotifPermission();
-    _initialization = Firebase.initializeApp();
-    getToken('abcdef');
-    getDatafromDB(_initialization);
-
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground message received: ${message.data}');
-      if (message.data['action'] == 'stream_request') {
-        _showActionNotification(
-            message.data['title'] ?? 'Stream Request',
-            message.data['body'] ?? 'Accept to view stream'
-        );
-      }
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForPendingNavigation();
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    print('App lifecycle state changed to: $state');
-    if (state == AppLifecycleState.resumed) {
-      print('App resumed - checking for pending navigation');
-      _checkForPendingNavigation();
+      MyApp.shouldNavigateToConnected = true;
     }
   }
 
-  void _checkForPendingNavigation() {
-    print('Checking for pending navigation: ${MyApp.shouldNavigateToStream}');
-    if (MyApp.shouldNavigateToStream) {
-      MyApp.shouldNavigateToStream = false;
-      final context = MyApp.navigatorKey.currentContext;
-      if (context != null) {
-        print('Navigating to VideoStreamScreen');
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const VideoStreamScreen(),
-          ),
-              (route) => false,
-        );
+  void _navigateToStream() {
+    final ctx = MyApp.navigatorKey.currentContext;
+    // Check if app is in foreground using WidgetsBinding.instance.lifecycleState
+    final isAppForeground = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+    if (ctx != null) {
+      if (isAppForeground) {
+        // App is in foreground, navigate to VideoStreamScreen
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const VideoStreamScreen()));
       } else {
-        print('Context still null, will retry in 500ms');
-        Future.delayed(Duration(milliseconds: 500), () {
-          _checkForPendingNavigation();
-        });
+        // App is in background, navigate to ConnectedScreen
+        Navigator.of(ctx).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const ConnectedScreen()),
+          (route) => false,
+        );
       }
+    } else {
+      // App is likely terminated or context not available yet
+      // We'll use the flag, but we'll determine the actual route when context becomes available
+      MyApp.shouldNavigateToStream = true;
+      // Store info that this was a background/terminated launch
+      MyApp.wasBackgroundLaunch = true;
     }
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
+  class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+    late Future<FirebaseApp> _initialization;
+    final FbUtils fbUtils = FbUtils();
+    late DatabaseReference _dbRef1;
 
-  Future<void> getToken(String accessToken) async {
-    String? token = await FirebaseMessaging.instance.getToken();
-    if (token != null) {
-      try {
-        await _dbRef1.set(token);
-        print('FCM Token: $token successfully written to database');
-      } catch (e) {
-        print('Error writing FCM token to database: $e');
+    @override
+    void initState() {
+      super.initState();
+      WidgetsBinding.instance.addObserver(this);
+
+      _dbRef1 = fbUtils.database.ref("/poc_pings/fcm_token");
+
+      fbUtils.fbPushNotification();
+      fbUtils.getNotifPermission();
+
+      _initialization = Future.value(Firebase.app());
+
+      getToken('abcdef');
+      getDatafromDB(_initialization);
+
+      // Foreground data messages -> show simple local notification
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        final wantsConnected =
+            message.data['route'] == 'connected' || message.data['action'] == 'connected';
+
+        if (wantsConnected) {
+          _showNotification(
+            message.data['title'] ?? 'Open Connected',
+            message.data['body'] ?? 'Tap to open Connected',
+            payload: 'route=connected',
+          );
+        } else {
+          final isStream = message.data['action'] == 'stream_request' || message.data['route'] == 'stream';
+          _showNotification(
+            message.data['title'] ?? (isStream ? 'Stream Request' : 'Notification'),
+            message.data['body'] ?? (isStream ? 'Tap to view stream' : 'Tap to open'),
+            payload: isStream ? 'route=stream' : null,
+          );
+        }
+      });
+
+      // System notification tap (if you ever send notification payloads)
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        if (message.data['route'] == 'connected') {
+          _navigateToConnected();
+        } else if (message.data['route'] == 'stream') {
+          _navigateToStream();
+        }
+      });
+
+      // Launched from terminated via system FCM notification (notification payload)
+      FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          if (message.data['route'] == 'connected') {
+            _navigateToConnected();
+          } else if (message.data['route'] == 'stream') {
+            _navigateToStream();
+          }
+        }
+      });
+
+      // Launched from a local notification tap (terminated)
+      Future.microtask(() async {
+        final details =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+        if (details?.didNotificationLaunchApp ?? false) {
+          final resp = details!.notificationResponse;
+          if (resp != null) {
+            handleNotificationResponse(resp);
+          }
+        }
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkForPendingNavigation();
+      });
+    }
+
+    @override
+    void didChangeAppLifecycleState(AppLifecycleState state) {
+      super.didChangeAppLifecycleState(state);
+      if (state == AppLifecycleState.resumed) {
+        _checkForPendingNavigation();
       }
     }
-  }
 
-  Future<void> getDatafromDB(Future<FirebaseApp> initialization) async {
-    Map<String, dynamic> data = await fbUtils.backgroundListen(initialization);
-    Provider.of<LoaderProvider>(context, listen: false).setFcmToken(data['fcm_token']);
-    Provider.of<LoaderProvider>(context, listen: false).setIp(data['ipv6']);
-  }
+    void _checkForPendingNavigation() {
+      final ctx = MyApp.navigatorKey.currentContext;
 
-  @override
-  Widget build(BuildContext context) {
-    FirebaseDatabase database = fbUtils.database;
-    _dbRef1 = database.ref("/poc_pings/fcm_token");
+      if (MyApp.shouldNavigateToConnected) {
+        MyApp.shouldNavigateToConnected = false;
+        if (ctx != null) {
+          Navigator.of(ctx).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const ConnectedScreen()),
+            (route) => false,
+          );
+        } else {
+          Future.delayed(const Duration(milliseconds: 400), _checkForPendingNavigation);
+        }
+        return;
+      }
 
-    return MaterialApp(
-      navigatorKey: MyApp.navigatorKey,
-      home: SplashScreen(),
-      debugShowCheckedModeBanner: false,
-    );
+      if (MyApp.shouldNavigateToStream) {
+        MyApp.shouldNavigateToStream = false;
+        if (ctx != null) {
+          if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed && !MyApp.wasBackgroundLaunch) {
+            // App is in foreground, navigate to VideoStreamScreen
+            Navigator.of(ctx).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const VideoStreamScreen()),
+              (route) => false,
+            );
+          } else {
+            // Navigate to connected screen if app was in background/terminated
+            Navigator.of(ctx).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const ConnectedScreen()),
+              (route) => false,
+            );
+            MyApp.wasBackgroundLaunch = false; // Reset the flag
+          }
+        } else {
+          Future.delayed(const Duration(milliseconds: 400), _checkForPendingNavigation);
+        }
+        return;
+      }
+    }
+
+    @override
+    void dispose() {
+      WidgetsBinding.instance.removeObserver(this);
+      super.dispose();
+    }
+
+    Future<void> getToken(String accessToken) async {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        try {
+          await _dbRef1.set(token);
+        } catch (_) {}
+      }
+    }
+
+    Future<void> getDatafromDB(Future<FirebaseApp> initialization) async {
+      final Map<String, dynamic> data = await fbUtils.backgroundListen(initialization);
+      Provider.of<LoaderProvider>(context, listen: false).setFcmToken(data['fcm_token']);
+      Provider.of<LoaderProvider>(context, listen: false).setIp(data['ipv6']);
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      return MaterialApp(
+        navigatorKey: MyApp.navigatorKey,
+        home: const SplashScreen(),
+        debugShowCheckedModeBanner: false,
+      );
+    }
   }
-}

@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:flutter/material.dart';
+import 'package:vdp_poc_new/screens/landing_screen.dart';
+import 'package:vdp_poc_new/screens/onboarding_screen.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/screens/home_screen.dart';
 
@@ -87,7 +89,7 @@ class WebApi {
             FirebaseDatabase database = FirebaseDatabase.instanceFor(
               app: Firebase.app(),
               databaseURL:
-                  'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+              'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
             );
             DatabaseReference tokenRef = database.ref("poc_pings/accessToken");
 
@@ -100,7 +102,7 @@ class WebApi {
           }
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const LandingScreen()),
           );
 
           Provider.of<LoaderProvider>(context, listen: false).otpSent = false;

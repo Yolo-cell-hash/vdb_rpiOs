@@ -172,108 +172,171 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                           onChanged: (b) async {
                             setState(() => positive = b);
 
-                            if(b){
-                              DatabaseReference survailanceMode = database.ref(
-                                '/poc_pings/survailanceModeEnabled',
-                              );
+                            DatabaseReference survailanceMode = database.ref('/poc_pings/survailanceModeEnabled');
+                            DatabaseReference ack = database.ref('/poc_pings/ack');
 
-                              DatabaseReference ack = database.ref(
-                                '/poc_pings/ack',
-                              );
+                            try {
+                              // Set up listener for acknowledgment first
+                              final ackFuture = ack.onValue.skip(1).first;
 
-                              final DatabaseEvent event = await ack.onValue.skip(1).first;
+                              // Then set the value
+                              await survailanceMode.set(b);
+
+                              // Wait for the acknowledgment
+                              final DatabaseEvent event = await ackFuture;
                               final DataSnapshot snapshot = event.snapshot;
 
-                              try{
-                                await survailanceMode.set(true);
-
-                                if (snapshot.exists) {
-                                  var data = snapshot.value.toString();
-                                  if(data.isNotEmpty && data.contains('Success')){
-                                    loaderProvider.hideLoader();
-                                  }else if(data.isNotEmpty && data.contains('Error')){
-                                    loaderProvider.hideLoader();
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: 'Error',
-                                      text: data.toString(),
-                                      confirmBtnText: 'OK',
-                                    );
-                                  }
-                                } else {
+                              // Process the response
+                              if (snapshot.exists) {
+                                var data = snapshot.value.toString();
+                                if(data.isNotEmpty && data.contains('Success')) {
+                                  loaderProvider.hideLoader();
+                                  loaderProvider.setSurvailanceMode(b);
+                                } else if(data.isNotEmpty && data.contains('Error')) {
+                                  loaderProvider.hideLoader();
+                                  // Reset state if there was an error
+                                  setState(() => positive = !b);
+                                  loaderProvider.setSurvailanceMode(!b);
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.error,
                                     title: 'Error',
-                                    text: 'Status not received from server.',
+                                    text: data.toString(),
                                     confirmBtnText: 'OK',
                                   );
                                 }
-                              }catch(e){
+                              } else {
+                                loaderProvider.hideLoader();
+                                // Reset state if no response
+                                setState(() => positive = !b);
+                                loaderProvider.setSurvailanceMode(!b);
                                 QuickAlert.show(
                                   context: context,
                                   type: QuickAlertType.error,
                                   title: 'Error',
-                                  text: 'Failed to set surveillance mode. $e',
-                                  confirmBtnText: 'OK',
-                                  onConfirmBtnTap: () {
-                                    Navigator.pop(context);
-                                    Navigator.pop(context);
-                                  },
-                                );
-                              }
-                            }else{
-                              print('Switch toggled to false: $b');
-                              DatabaseReference survailanceMode = database.ref(
-                                '/poc_pings/survailanceModeEnabled',
-                              );
-
-                              DatabaseReference ack = database.ref(
-                                '/poc_pings/ack',
-                              );
-
-                              final DatabaseEvent event = await ack.onValue.skip(1).first;
-                              final DataSnapshot snapshot = event.snapshot;
-
-                              try{
-                                await survailanceMode.set(false);
-
-                                if (snapshot.exists) {
-                                  var data = snapshot.value.toString();
-                                  if(data.isNotEmpty && data.contains('Success')){
-                                    loaderProvider.hideLoader();
-                                  }else if(data.isNotEmpty && data.contains('Error')){
-                                    loaderProvider.hideLoader();
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: 'Error',
-                                      text: data.toString(),
-                                      confirmBtnText: 'OK',
-                                    );
-                                  }
-                                } else {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.error,
-                                    title: 'Error',
-                                    text: 'Status not received from server.',
-                                    confirmBtnText: 'OK',
-                                  );
-                                }
-
-                              }catch(e){
-                                QuickAlert.show(
-                                  context: context,
-                                  type: QuickAlertType.error,
-                                  title: 'Error',
-                                  text: 'Failed to set surveillance mode. $e',
+                                  text: 'Status not received from server.',
                                   confirmBtnText: 'OK',
                                 );
                               }
+                            } catch(e) {
+                              loaderProvider.hideLoader();
+                              // Reset state if exception
+                              setState(() => positive = !b);
+                              loaderProvider.setSurvailanceMode(!b);
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.error,
+                                title: 'Error',
+                                text: 'Failed to set surveillance mode. $e',
+                                confirmBtnText: 'OK',
+                              );
                             }
                           },
+                          // onChanged: (b) async {
+                          //   setState(() => positive = b);
+                          //
+                          //   if(b){
+                          //     DatabaseReference survailanceMode = database.ref(
+                          //       '/poc_pings/survailanceModeEnabled',
+                          //     );
+                          //
+                          //     DatabaseReference ack = database.ref(
+                          //       '/poc_pings/ack',
+                          //     );
+                          //
+                          //     final DatabaseEvent event = await ack.onValue.skip(1).first;
+                          //     final DataSnapshot snapshot = event.snapshot;
+                          //
+                          //     try{
+                          //       await survailanceMode.set(true);
+                          //
+                          //       if (snapshot.exists) {
+                          //         var data = snapshot.value.toString();
+                          //         if(data.isNotEmpty && data.contains('Success')){
+                          //           loaderProvider.hideLoader();
+                          //         }else if(data.isNotEmpty && data.contains('Error')){
+                          //           loaderProvider.hideLoader();
+                          //           QuickAlert.show(
+                          //             context: context,
+                          //             type: QuickAlertType.error,
+                          //             title: 'Error',
+                          //             text: data.toString(),
+                          //             confirmBtnText: 'OK',
+                          //           );
+                          //         }
+                          //       } else {
+                          //         QuickAlert.show(
+                          //           context: context,
+                          //           type: QuickAlertType.error,
+                          //           title: 'Error',
+                          //           text: 'Status not received from server.',
+                          //           confirmBtnText: 'OK',
+                          //         );
+                          //       }
+                          //     }catch(e){
+                          //       QuickAlert.show(
+                          //         context: context,
+                          //         type: QuickAlertType.error,
+                          //         title: 'Error',
+                          //         text: 'Failed to set surveillance mode. $e',
+                          //         confirmBtnText: 'OK',
+                          //         onConfirmBtnTap: () {
+                          //           Navigator.pop(context);
+                          //           Navigator.pop(context);
+                          //         },
+                          //       );
+                          //     }
+                          //   }else{
+                          //     print('Switch toggled to false: $b');
+                          //     DatabaseReference survailanceMode = database.ref(
+                          //       '/poc_pings/survailanceModeEnabled',
+                          //     );
+                          //
+                          //     DatabaseReference ack = database.ref(
+                          //       '/poc_pings/ack',
+                          //     );
+                          //
+                          //     final DatabaseEvent event = await ack.onValue.skip(1).first;
+                          //     final DataSnapshot snapshot = event.snapshot;
+                          //
+                          //     try{
+                          //       await survailanceMode.set(false);
+                          //
+                          //       if (snapshot.exists) {
+                          //         var data = snapshot.value.toString();
+                          //         if(data.isNotEmpty && data.contains('Success')){
+                          //           loaderProvider.hideLoader();
+                          //         }else if(data.isNotEmpty && data.contains('Error')){
+                          //           loaderProvider.hideLoader();
+                          //           QuickAlert.show(
+                          //             context: context,
+                          //             type: QuickAlertType.error,
+                          //             title: 'Error',
+                          //             text: data.toString(),
+                          //             confirmBtnText: 'OK',
+                          //           );
+                          //         }
+                          //       } else {
+                          //         QuickAlert.show(
+                          //           context: context,
+                          //           type: QuickAlertType.error,
+                          //           title: 'Error',
+                          //           text: 'Status not received from server.',
+                          //           confirmBtnText: 'OK',
+                          //         );
+                          //       }
+                          //
+                          //     }catch(e){
+                          //       QuickAlert.show(
+                          //         context: context,
+                          //         type: QuickAlertType.error,
+                          //         title: 'Error',
+                          //         text: 'Failed to set surveillance mode. $e',
+                          //         confirmBtnText: 'OK',
+                          //       );
+                          //     }
+                          //   }
+                          // },
                           styleBuilder: (b) => ToggleStyle(
                               indicatorColor: b ? Colors.green : Colors.red),
                           iconBuilder: (value) => value

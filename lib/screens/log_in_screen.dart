@@ -52,7 +52,7 @@ class _LogInScreenState extends State<LogInScreen> {
       FirebaseDatabase database = FirebaseDatabase.instanceFor(
         app: firebaseApp,
         databaseURL:
-            'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+        'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
       _dbRef = database.ref("poc_pings");
     });
@@ -86,7 +86,7 @@ class _LogInScreenState extends State<LogInScreen> {
             FirebaseDatabase database = FirebaseDatabase.instanceFor(
               app: firebaseApp,
               databaseURL:
-                  'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+              'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
             );
             DatabaseReference ref = FirebaseDatabase.instance.ref();
 
@@ -110,10 +110,10 @@ class _LogInScreenState extends State<LogInScreen> {
                       right: 0,
                       child: IpPortTextfield(
                         onChanged:
-                            !wasOtpSent
-                                ? (() async => await webApi.requestOTP(context))
-                                : (() async =>
-                                    await webApi.verifyOTP(context, typedOTP)),
+                        !wasOtpSent
+                            ? (() async => await webApi.requestOTP(context))
+                            : (() async =>
+                        await webApi.verifyOTP(context, typedOTP)),
                         label: !wasOtpSent ? 'Phone Number' : 'OTP',
                         btnLabel: !wasOtpSent ? 'Request OTP' : 'Verify OTP',
                       ),
