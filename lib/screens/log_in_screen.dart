@@ -54,7 +54,7 @@ class _LogInScreenState extends State<LogInScreen> {
         databaseURL:
         'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef = database.ref("poc_pings");
+      _dbRef = database.ref("dev_env");
     });
   }
 

@@ -178,7 +178,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                 loaderProvider.showLoader();
                 await _client.disconnect();
                 DatabaseReference userResponseFieldRef = database.ref(
-                  '/poc_pings/sendFeed',
+                  '/dev_env/sendFeed',
                 );
                 try {
                   await userResponseFieldRef.set(false);
@@ -209,7 +209,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                           Navigator.pop(context);
                           await _client.disconnect();
                           DatabaseReference userResponseFieldRef = database.ref(
-                            '/poc_pings/sendFeed',
+                            '/dev_env/sendFeed',
                           );
                           try {
                             await userResponseFieldRef.set(false);
@@ -273,7 +273,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       _watchStream();
 
                                       DatabaseReference userResponseFieldRef =
-                                          database.ref('/poc_pings/sendFeed');
+                                          database.ref('/dev_env/sendFeed');
                                       try {
                                         await userResponseFieldRef.set(true);
                                         print(
@@ -291,7 +291,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                     onCancelBtnTap: () async {
                                       Navigator.pop(context);
                                       DatabaseReference userResponseFieldRef =
-                                          database.ref('/poc_pings/sendFeed');
+                                          database.ref('/dev_env/sendFeed');
 
                                       try {
                                         await userResponseFieldRef.set(true);
@@ -472,7 +472,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                             callBack: () async {
                               // loaderProvider.showLoader();
                               DatabaseReference userResponseFieldRef = database
-                                  .ref('/poc_pings/unlockDoor');
+                                  .ref('/dev_env/unlockDoor');
                               try {
                                 await userResponseFieldRef.set(true);
                                 int value = await webApi.unlockDoor(context);

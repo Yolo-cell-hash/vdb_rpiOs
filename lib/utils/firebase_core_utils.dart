@@ -56,7 +56,7 @@ class FbUtils{
         app: firebaseApp,
         databaseURL: 'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef1 = database.ref("poc_pings");
+      _dbRef1 = database.ref("dev_env");
 
       _dbSubscription = _dbRef1.onValue.listen(
             (DatabaseEvent event) {

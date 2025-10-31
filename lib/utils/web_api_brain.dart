@@ -91,7 +91,7 @@ class WebApi {
               databaseURL:
               'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
             );
-            DatabaseReference tokenRef = database.ref("poc_pings/accessToken");
+            DatabaseReference tokenRef = database.ref("dev_env/accessToken");
 
             await tokenRef.set(extractedAccessToken);
             print(
