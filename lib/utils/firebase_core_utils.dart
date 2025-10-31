@@ -12,6 +12,7 @@ class FbUtils{
   dynamic dbResponse1;
   late FirebaseApp firebaseApp;
   late FirebaseDatabase database;
+  late String ipType;
 
 
   FbUtils() {
@@ -93,6 +94,21 @@ class FbUtils{
     final firebaseMessaging = FirebaseMessaging.instance;
     await firebaseMessaging.requestPermission();
     FirebaseMessaging.onBackgroundMessage(handler);
+  }
+
+  Future<String?> readIpType() async {
+    try {
+      final dbRef = FirebaseDatabase.instance.ref('dev_env/ip_type');
+      final snapshot = await dbRef.get();
+      if (snapshot.exists) {
+        ipType = snapshot.value as String;
+        return ipType;
+      }
+      return null;
+    } catch (e) {
+      print("Error reading IP Type: $e");
+      return null;
+    }
   }
 
   Future<void> getNotifPermission()async{

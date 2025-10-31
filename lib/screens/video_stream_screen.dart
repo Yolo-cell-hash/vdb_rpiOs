@@ -30,6 +30,7 @@ class VideoStreamScreen extends StatefulWidget {
 
 class _VideoStreamScreenState extends State<VideoStreamScreen> {
   late String ip;
+  late String? ipType;
   String? _recordedFilePath;
   BleUtil bleUtil = BleUtil();
   bool isStremVisible = false;
@@ -130,16 +131,44 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
       loaderProvider.showLoader();
       try {
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
-        _client = JanusWebRTCClient('ws://[$ip]:8188');
-        await connectOnPageInit();
-        _client.messages.listen((message) {
-          setState(() {
-            _status = message;
+
+        ipType = (await fbUtils.readIpType()).toString();
+
+        print('IP TYPE IS ---------- $ipType');
+
+        if(ipType == "IPv6"){
+          _client = JanusWebRTCClient('ws://[$ip]:8188');
+          await connectOnPageInit();
+          _client.messages.listen((message) {
+            setState(() {
+              _status = message;
+            });
           });
-        });
-        _client.remoteStream.listen((stream) {
-          _remoteRenderer.srcObject = stream;
-        });
+          _client.remoteStream.listen((stream) {
+            _remoteRenderer.srcObject = stream;
+          });
+        } else if(ipType == "IPv4"){
+          _client = JanusWebRTCClient('ws://$ip:8188');
+          await connectOnPageInit();
+          _client.messages.listen((message) {
+            setState(() {
+              _status = message;
+            });
+          });
+          _client.remoteStream.listen((stream) {
+            _remoteRenderer.srcObject = stream;
+          });
+        } else {
+          QuickAlert.show(
+            context: context,
+            type: QuickAlertType.error,
+            title: 'Oops...',
+            text: 'IP Type is neither IPv4 nor IPv6',
+            confirmBtnColor: const Color(0xFFE30A17),
+          );
+        }
+
+
       } finally {
         loaderProvider.hideLoader();
       }
