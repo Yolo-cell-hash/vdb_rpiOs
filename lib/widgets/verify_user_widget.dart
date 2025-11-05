@@ -69,7 +69,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
       loaderProvider.showLoader();
       try {
         FirebaseDatabase database = fbUtils.database;
-        DatabaseReference verifyUser = database.ref('/dev_env/verifyUsers');
+        DatabaseReference verifyUser = database.ref('/vdb_poc/verifyUsers');
         await verifyUser.set(true);
 
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
@@ -141,13 +141,13 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
               loaderProvider.showLoader();
 
               try{
-                DatabaseReference confirm = database.ref('/dev_env/confirm');
+                DatabaseReference confirm = database.ref('/vdb_poc/confirm');
                 await confirm.set(true);
-                DatabaseReference feed = database.ref('/dev_env/sendFeed');
+                DatabaseReference feed = database.ref('/vdb_poc/sendFeed');
                 await feed.set(false);
 
                 DatabaseReference ack = database.ref(
-                  '/dev_env/ack',
+                  '/vdb_poc/ack',
                 );
 
                 final DatabaseEvent event = await ack.onValue.skip(1).first;

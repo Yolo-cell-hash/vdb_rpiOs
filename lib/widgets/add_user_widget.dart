@@ -110,7 +110,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
           loaderProvider.showLoader();
           await _client.disconnect();
           DatabaseReference userResponseFieldRef = database.ref(
-            '/dev_env/sendFeed',
+            '/vdb_poc/sendFeed',
           );
           try {
             await userResponseFieldRef.set(false);
@@ -153,7 +153,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                     loaderProvider.showLoader();
                     try {
                       DatabaseReference sendFeedState = database.ref(
-                        '/dev_env/sendFeed',
+                        '/vdb_poc/sendFeed',
                       );
                       try {
                         await sendFeedState.set(true);
@@ -230,19 +230,19 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                 loaderProvider.showLoader();
                 try {
                   DatabaseReference userResponseFieldRef = database.ref(
-                    '/dev_env/addUsers',
+                    '/vdb_poc/addUsers',
                   );
 
                   DatabaseReference showFeedField = database.ref(
-                    '/dev_env/sendFeed',
+                    '/vdb_poc/sendFeed',
                   );
 
                   DatabaseReference confirmClick = database.ref(
-                    '/dev_env/confirm',
+                    '/vdb_poc/confirm',
                   );
 
                   DatabaseReference ack = database.ref(
-                    '/dev_env/ack',
+                    '/vdb_poc/ack',
                   );
 
                   await userResponseFieldRef.set(name);

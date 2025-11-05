@@ -77,7 +77,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
 
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FbUtils fbUtils = FbUtils();
-    DatabaseReference survaillanceRef = fbUtils.database.ref('/dev_env/survailanceModeEnabled');
+    DatabaseReference survaillanceRef = fbUtils.database.ref('/vdb_poc/survailanceModeEnabled');
 
     survaillanceRef.once().then((DatabaseEvent event) {
       if (event.snapshot.exists) {
@@ -172,8 +172,8 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                           onChanged: (b) async {
                             setState(() => positive = b);
 
-                            DatabaseReference survailanceMode = database.ref('/dev_env/survailanceModeEnabled');
-                            DatabaseReference ack = database.ref('/dev_env/ack');
+                            DatabaseReference survailanceMode = database.ref('/vdb_poc/survailanceModeEnabled');
+                            DatabaseReference ack = database.ref('/vdb_poc/ack');
 
                             try {
                               // Set up listener for acknowledgment first

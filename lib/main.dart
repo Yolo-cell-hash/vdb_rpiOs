@@ -198,7 +198,7 @@ import 'package:firebase_database/firebase_database.dart';
       super.initState();
       WidgetsBinding.instance.addObserver(this);
 
-      _dbRef1 = fbUtils.database.ref("/dev_env/fcm_token");
+      _dbRef1 = fbUtils.database.ref("/vdb_poc/fcm_token");
 
       fbUtils.fbPushNotification();
       fbUtils.getNotifPermission();

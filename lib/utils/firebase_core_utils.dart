@@ -19,7 +19,7 @@ class FbUtils{
     firebaseApp = Firebase.app();
     database = FirebaseDatabase.instanceFor(
       app: firebaseApp,
-      databaseURL: 'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+      databaseURL: 'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
     );
   }
 
@@ -55,9 +55,9 @@ class FbUtils{
     initialization.then((firebaseApp) {
       FirebaseDatabase database = FirebaseDatabase.instanceFor(
         app: firebaseApp,
-        databaseURL: 'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+        databaseURL: 'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef1 = database.ref("dev_env");
+      _dbRef1 = database.ref("vdb_poc");
 
       _dbSubscription = _dbRef1.onValue.listen(
             (DatabaseEvent event) {
@@ -98,7 +98,7 @@ class FbUtils{
 
   Future<String?> readIpType() async {
     try {
-      final dbRef = FirebaseDatabase.instance.ref('dev_env/ip_type');
+      final dbRef = FirebaseDatabase.instance.ref('vdb_poc/ip_type');
       final snapshot = await dbRef.get();
       if (snapshot.exists) {
         ipType = snapshot.value as String;

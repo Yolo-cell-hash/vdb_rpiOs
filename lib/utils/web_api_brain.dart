@@ -89,9 +89,9 @@ class WebApi {
             FirebaseDatabase database = FirebaseDatabase.instanceFor(
               app: Firebase.app(),
               databaseURL:
-              'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+              'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
             );
-            DatabaseReference tokenRef = database.ref("dev_env/accessToken");
+            DatabaseReference tokenRef = database.ref("vdb_poc/accessToken");
 
             await tokenRef.set(extractedAccessToken);
             print(

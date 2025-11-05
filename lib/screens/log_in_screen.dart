@@ -52,9 +52,9 @@ class _LogInScreenState extends State<LogInScreen> {
       FirebaseDatabase database = FirebaseDatabase.instanceFor(
         app: firebaseApp,
         databaseURL:
-        'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+        'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef = database.ref("dev_env");
+      _dbRef = database.ref("vdb_poc");
     });
   }
 
@@ -86,7 +86,7 @@ class _LogInScreenState extends State<LogInScreen> {
             FirebaseDatabase database = FirebaseDatabase.instanceFor(
               app: firebaseApp,
               databaseURL:
-              'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+              'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
             );
             DatabaseReference ref = FirebaseDatabase.instance.ref();
 
