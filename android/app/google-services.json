@@ -1,27 +1,66 @@
 {
   "project_info": {
-    "project_number": "1015524249408",
-    "firebase_url": "https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "vdb-poc",
-    "storage_bucket": "vdb-poc.firebasestorage.app"
+    "project_number": "993932183952",
+    "firebase_url": "https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "advantis-smartlocks-uat-iot9",
+    "storage_bucket": "advantis-smartlocks-uat-iot9.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1015524249408:android:ceffc4da3189aeffd074a5",
+        "mobilesdk_app_id": "1:993932183952:android:bf7d878dc24eace7f1cb15",
         "android_client_info": {
           "package_name": "com.godrej.vdp_poc_new"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "993932183952-ru8em93t6jpicse363rfvrum2jq2fne9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCY7Kk3melgyVzVUcgINkRQMvb_7BepWJc"
+          "current_key": "AIzaSyBQXvJm0rISz9omUS8z_snXPUsabDhR0dU"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "993932183952-ru8em93t6jpicse363rfvrum2jq2fne9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993932183952:android:04e9708ab07c4b89f1cb15",
+        "android_client_info": {
+          "package_name": "godrej.locks.retail.hmuat.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "993932183952-ru8em93t6jpicse363rfvrum2jq2fne9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQXvJm0rISz9omUS8z_snXPUsabDhR0dU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "993932183952-ru8em93t6jpicse363rfvrum2jq2fne9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
