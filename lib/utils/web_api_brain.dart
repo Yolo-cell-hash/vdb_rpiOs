@@ -8,9 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:flutter/material.dart';
 import 'package:vdp_poc_new/screens/landing_screen.dart';
-import 'package:vdp_poc_new/screens/onboarding_screen.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
-import 'package:vdp_poc_new/screens/home_screen.dart';
 
 class WebApi {
   static const String apiKey = 'e8q0y264i3nxjw2pn9p2pxtbo0ub4n3b';
@@ -89,7 +87,7 @@ class WebApi {
             FirebaseDatabase database = FirebaseDatabase.instanceFor(
               app: Firebase.app(),
               databaseURL:
-              'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
+                  'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
             );
             DatabaseReference tokenRef = database.ref("vdb_poc/accessToken");
 
@@ -223,6 +221,40 @@ class WebApi {
         confirmBtnColor: Colors.red,
       );
       return 500;
+    }
+  }
+
+  Future<void> sendNotification(BuildContext context) async {
+    String lockID = Provider.of<LoaderProvider>(context, listen: false).lockID;
+    String tokens =
+        Provider.of<LoaderProvider>(context, listen: false).accessToken;
+
+    Map<String, dynamic> requestBody = {'LOCK_ID': lockID.toString()};
+
+    String jsonBody = jsonEncode(requestBody);
+
+    try {
+      response = await http.post(
+        // Changed from http.get to http.post
+        Uri.parse(
+          '$baseUrl/integrators/v1/lock/${lockID}/emergency-alert?type=DOORBELL',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': 'Bearer $tokens',
+          'LOCK_ID': lockID,
+        },
+        body: jsonBody, // Add the encoded body here
+      );
+
+      if (response.statusCode == 200) {
+        print('Notification Sent Successfully !!!');
+      } else {
+        print('Notification Could not be sent!!!');
+      }
+    } catch (e) {
+      print('Internal Error Occured - $e');
     }
   }
 }

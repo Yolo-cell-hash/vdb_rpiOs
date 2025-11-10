@@ -243,7 +243,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                           try {
                             await userResponseFieldRef.set(false);
                             print(
-                              'User response updated to true in Firebase at /updates/userResponse',
+                              'User response updated to true in Firebase at /vdb_poc/userResponse',
                             );
                           } catch (e) {
                             print('Error updating user response to true: $e');
@@ -527,12 +527,9 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                 final GlobalKey repaintBoundaryKey =
                                     GlobalKey();
 
-                                // We need to briefly rebuild the widget with this key
                                 setState(() {
                                   _repaintBoundaryKey = repaintBoundaryKey;
                                 });
-
-                                // Wait for the next frame to ensure the widget is built
                                 await Future.delayed(
                                   Duration(milliseconds: 100),
                                 );
@@ -583,13 +580,6 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                               }
                             },
                           ),
-                          // HomeScreenFuncButton(
-                          //   btnLabel: 'Record',
-                          //   iconData: Icons.emergency_recording,
-                          //   callBack: () {
-                          //     print('Started Recording');
-                          //   },
-                          // ),
                           HomeScreenFuncButton(
                             btnLabel: _isRecording ? 'Stop' : 'Record',
                             iconData:
@@ -600,12 +590,9 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                               if (_isRecording) {
                                 // Stop recording
                                 try {
-                                  // Stop the recording timer
                                   _recordingTimer?.cancel();
 
                                   await _mediaRecorder?.stop();
-
-                                  // Save recording to gallery
                                   final result =
                                       await ImageGallerySaverPlus.saveFile(
                                         _recordedFilePath!,

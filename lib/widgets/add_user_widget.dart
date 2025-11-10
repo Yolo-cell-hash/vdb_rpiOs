@@ -23,8 +23,8 @@ class _AddUserWidgetState extends State<AddUserWidget> {
   bool isStreamStarted = false;
   FbUtils fbUtils = FbUtils();
   late JanusWebRTCClient _client;
-  RTCVideoRenderer _localRenderer = RTCVideoRenderer();
-  RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
 
   void _watchStream() async {
     final streamId = 11;

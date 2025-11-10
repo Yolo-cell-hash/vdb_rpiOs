@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:quickalert/models/quickalert_type.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/utils/ble_util.dart';
-import 'package:vdp_poc_new/utils/loader_provider.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:quickalert/widgets/quickalert_dialog.dart';
-
+import 'package:vdp_poc_new/utils/web_api_brain.dart';
 
 class ConnectedScreenUnlockCard extends StatefulWidget {
   final IconData lockIcon;
@@ -28,14 +23,12 @@ class ConnectedScreenUnlockCard extends StatefulWidget {
 }
 
 class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
-  @override
-
-
   BleUtil bleUtil= BleUtil();
+  WebApi webApi = WebApi();
 
+  @override
   Widget build(BuildContext context) {
     final macAddress = Provider.of<LoaderProvider>(context).macAddress;
-
 
     return SizedBox(
       width: double.infinity,
@@ -119,12 +112,17 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
               const SizedBox(
                 height: 10,
               ),
-              const Center(
-                child: Text(
-                  'Auto - Locked',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.black,
+               Center(
+                child: GestureDetector(
+                  onTap: ()async{
+                    await webApi.sendNotification(context);
+                  },
+                  child: Text(
+                    'Auto - Locked',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
               ),
