@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/utils/ble_util.dart';
 import 'package:vdp_poc_new/utils/web_api_brain.dart';
+import 'package:animate_do/animate_do.dart';
 
 class ConnectedScreenUnlockCard extends StatefulWidget {
   final IconData lockIcon;
@@ -108,18 +109,6 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              Center(
-                child: GestureDetector(
-                  onTap: () async {
-                    // await webApi.sendNotification(context);
-                  },
-                  child: Text(
-                    'Auto - Locked',
-                    style: TextStyle(fontSize: 15, color: Colors.black),
-                  ),
-                ),
-              ),
               const SizedBox(height: 20),
               SizedBox(
                 height: 30,
@@ -127,10 +116,14 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.wifi,
-                      color: wifiState ? Colors.green : Colors.red,
-                      size: 25,
+                    Tada(
+                      animate: wifiState? false: true,
+                      infinite: wifiState? false: true,
+                      child: Icon(
+                        Icons.wifi,
+                        color: wifiState ? Colors.green : Colors.red,
+                        size: 25,
+                      ),
                     ),
                     const VerticalDivider(color: Colors.grey, thickness: 1.5),
                     Icon(Icons.battery_full, color: Colors.green, size: 25),
