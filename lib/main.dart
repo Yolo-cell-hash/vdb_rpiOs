@@ -198,7 +198,7 @@ import 'package:firebase_database/firebase_database.dart';
       super.initState();
       WidgetsBinding.instance.addObserver(this);
 
-      _dbRef1 = fbUtils.database.ref("/vdb_poc/fcm_token");
+      _dbRef1 = fbUtils.database.ref("/dev_env/fcm_token");
 
       fbUtils.fbPushNotification();
       fbUtils.getNotifPermission();
@@ -294,7 +294,6 @@ import 'package:firebase_database/firebase_database.dart';
         MyApp.shouldNavigateToStream = false;
         if (ctx != null) {
           if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed && !MyApp.wasBackgroundLaunch) {
-            // App is in foreground, navigate to VideoStreamScreen
             Navigator.of(ctx).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const VideoStreamScreen()),
               (route) => false,
@@ -330,9 +329,10 @@ import 'package:firebase_database/firebase_database.dart';
     }
 
     Future<void> getDatafromDB(Future<FirebaseApp> initialization) async {
-      final Map<String, dynamic> data = await fbUtils.backgroundListen(initialization);
+      final Map<String, dynamic> data = await fbUtils.backgroundListen(initialization, context);
       Provider.of<LoaderProvider>(context, listen: false).setFcmToken(data['fcm_token']);
       Provider.of<LoaderProvider>(context, listen: false).setIp(data['ipv6']);
+      Provider.of<LoaderProvider>(context, listen: false).setWifiState(data['wifi_state']);
     }
 
     @override

@@ -4,86 +4,124 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import 'loader_provider.dart';
 
-class FbUtils{
-
+class FbUtils {
   late DatabaseReference _dbRef1;
-  StreamSubscription<DatabaseEvent>? _dbSubscription,_dbSubscription1;
+  StreamSubscription<DatabaseEvent>? _dbSubscription, _dbSubscription1;
   dynamic dbResponse1;
   late FirebaseApp firebaseApp;
   late FirebaseDatabase database;
   late String ipType;
+  late bool wifiState;
 
 
   FbUtils() {
     firebaseApp = Firebase.app();
     database = FirebaseDatabase.instanceFor(
       app: firebaseApp,
-      databaseURL: 'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
+      databaseURL:
+          'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
     );
   }
 
-  // Future<void> backgroundListen(Future<FirebaseApp> initialization)async {
-  //   initialization.then((firebaseApp) {
-  //     // Ensure Firebase is initialized
-  //     FirebaseDatabase database = FirebaseDatabase.instanceFor(
-  //       app: firebaseApp,
-  //       databaseURL:
-  //       'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
-  //     );
-  //     _dbRef1 = database.ref("poc_pings");
-  //
-  //     _dbSubscription = _dbRef1.onValue.listen(
-  //           (DatabaseEvent event) {
-  //             if (event.snapshot.exists) {
-  //               dbResponse1 = event.snapshot.value;
-  //               print("Data updated: ${event.snapshot.value}");
-  //             } else {
-  //               dbResponse1 = null;
-  //               print("No data at path");
-  //             }
-  //       },
-  //       onError: (error) {
-  //         print("Error listening to database: $error");
-  //       },
-  //     );
-  //   });
-  // }
+  // C:/Users/jayrk/AndroidStudioProjects/vdp_poc_new/lib/utils/firebase_core_utils.dart
 
-  Future<Map<String, dynamic>> backgroundListen(Future<FirebaseApp> initialization) async {
+  Future<Map<String, dynamic>> backgroundListen(
+      Future<FirebaseApp> initialization, BuildContext context,
+      ) async {
     final completer = Completer<Map<String, dynamic>>();
     initialization.then((firebaseApp) {
       FirebaseDatabase database = FirebaseDatabase.instanceFor(
         app: firebaseApp,
-        databaseURL: 'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
+        databaseURL:
+        'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef1 = database.ref("vdb_poc");
+      _dbRef1 = database.ref("dev_env");
 
       _dbSubscription = _dbRef1.onValue.listen(
             (DatabaseEvent event) {
           if (event.snapshot.exists) {
             dbResponse1 = event.snapshot.value;
-            print("Data updated: ${event.snapshot.value}");
-            // Cast to Map<String, dynamic> if possible
+            final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
             if (dbResponse1 is Map) {
-              completer.complete(Map<String, dynamic>.from(dbResponse1));
-            } else {
-              completer.complete({});
+              loaderProvider.setWifiState(dbResponse1['wifi_state']);
+            }
+
+            print("Data updated: ${event.snapshot.value}");
+
+            if (!completer.isCompleted) {
+              if (dbResponse1 is Map) {
+                completer.complete(Map<String, dynamic>.from(dbResponse1));
+              } else {
+                completer.complete({});
+              }
             }
           } else {
             dbResponse1 = null;
             print("No data at path");
-            completer.complete({});
+            if (!completer.isCompleted) {
+              completer.complete({});
+            }
           }
         },
         onError: (error) {
           print("Error listening to database: $error");
-          completer.completeError(error);
+          // And check here
+          if (!completer.isCompleted) {
+            completer.completeError(error);
+          }
         },
       );
     });
     return completer.future;
   }
+
+
+
+  // Future<Map<String, dynamic>> backgroundListen(
+  //   Future<FirebaseApp> initialization, BuildContext context,
+  // ) async {
+  //   final completer = Completer<Map<String, dynamic>>();
+  //   initialization.then((firebaseApp) {
+  //     FirebaseDatabase database = FirebaseDatabase.instanceFor(
+  //       app: firebaseApp,
+  //       databaseURL:
+  //           'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+  //     );
+  //     _dbRef1 = database.ref("dev_env");
+  //
+  //     _dbSubscription = _dbRef1.onValue.listen(
+  //       (DatabaseEvent event) {
+  //         if (event.snapshot.exists) {
+  //           dbResponse1 = event.snapshot.value;
+  //
+  //           Provider.of<LoaderProvider>(context).setWifiState(dbResponse1['wifi_state']);
+  //           Provider.of<LoaderProvider>(context).setWifiState(dbResponse1['ip_type']);
+  //
+  //           print("Data updated: ${event.snapshot.value}");
+  //           // Cast to Map<String, dynamic> if possible
+  //           if (dbResponse1 is Map) {
+  //             completer.complete(Map<String, dynamic>.from(dbResponse1));
+  //           } else {
+  //             completer.complete({});
+  //           }
+  //         } else {
+  //           dbResponse1 = null;
+  //           print("No data at path");
+  //           completer.complete({});
+  //         }
+  //       },
+  //       onError: (error) {
+  //         print("Error listening to database: $error");
+  //         completer.completeError(error);
+  //       },
+  //     );
+  //   });
+  //   return completer.future;
+  // }
 
   Future<void> handler(RemoteMessage message) async {
     print('Title : ${message.notification!.title}');
@@ -98,7 +136,7 @@ class FbUtils{
 
   Future<String?> readIpType() async {
     try {
-      final dbRef = FirebaseDatabase.instance.ref('vdb_poc/ip_type');
+      final dbRef = FirebaseDatabase.instance.ref('dev_env/ip_type');
       final snapshot = await dbRef.get();
       if (snapshot.exists) {
         ipType = snapshot.value as String;
@@ -111,7 +149,25 @@ class FbUtils{
     }
   }
 
-  Future<void> getNotifPermission()async{
+  Future<bool> readWifiState() async {
+    try {
+      final dbRef = FirebaseDatabase.instance.ref('dev_env/wifi_state');
+      final snapshot = await dbRef.get();
+      if (snapshot.exists) {
+        wifiState = snapshot.value as bool;
+        print('Wifi State - $wifiState');
+        return wifiState;
+      }else{
+        print('Wifi State - $wifiState');
+        return false;
+      }
+    } catch (e) {
+      print("Error reading WiFi State - $e");
+      return false;
+    }
+  }
+
+  Future<void> getNotifPermission() async {
     var status = await Permission.notification.status;
     if (status.isDenied) {
       Permission.notification.request();
@@ -120,5 +176,4 @@ class FbUtils{
       Permission.notification.request();
     }
   }
-
 }

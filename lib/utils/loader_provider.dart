@@ -5,6 +5,7 @@ class LoaderProvider with ChangeNotifier {
   bool _otpSent = false;
   bool _isStreamSubscribed = false;
   bool _survailanceModeEnabled = false;
+  bool _wifiState = false;
 
   String _macAddress = '';
   String _ip = '';
@@ -21,6 +22,8 @@ class LoaderProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get survailanceModeEnabled => _survailanceModeEnabled;
   bool get isStreamSubscribed => _isStreamSubscribed;
+  bool get wifiState => _wifiState;
+
   String get macAddress => _macAddress;
   String get ip => _ip;
   String get fcmToken => _fcmToken;
@@ -39,6 +42,11 @@ class LoaderProvider with ChangeNotifier {
 
   void setSurvailanceMode(bool value) {
     _survailanceModeEnabled = value;
+    notifyListeners();
+  }
+
+  void setWifiState(bool newValue) {
+    _wifiState = newValue;
     notifyListeners();
   }
 

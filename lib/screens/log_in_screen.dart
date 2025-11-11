@@ -54,7 +54,7 @@ class _LogInScreenState extends State<LogInScreen> {
         databaseURL:
         'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef = database.ref("vdb_poc");
+      _dbRef = database.ref("dev_env");
     });
   }
 

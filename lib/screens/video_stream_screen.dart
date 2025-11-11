@@ -82,7 +82,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
   }
 
   void _watchStream() async {
-    final streamId = 11;
+    final streamId = 7;                              //////STREAM ID HERE, CHANGES HERE !!!
     await _client.watchStream(streamId);
     print(
       'Wacth Stream Called ---------------------------------------------------------------',
@@ -207,7 +207,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                 loaderProvider.showLoader();
                 await _client.disconnect();
                 DatabaseReference userResponseFieldRef = database.ref(
-                  '/vdb_poc/sendFeed',
+                  '/dev_env/sendFeed',
                 );
                 try {
                   await userResponseFieldRef.set(false);
@@ -238,12 +238,12 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                           Navigator.pop(context);
                           await _client.disconnect();
                           DatabaseReference userResponseFieldRef = database.ref(
-                            '/vdb_poc/sendFeed',
+                            '/dev_env/sendFeed',
                           );
                           try {
                             await userResponseFieldRef.set(false);
                             print(
-                              'User response updated to true in Firebase at /vdb_poc/userResponse',
+                              'User response updated to true in Firebase at /dev_env/userResponse',
                             );
                           } catch (e) {
                             print('Error updating user response to true: $e');
@@ -302,7 +302,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       _watchStream();
 
                                       DatabaseReference userResponseFieldRef =
-                                          database.ref('/vdb_poc/sendFeed');
+                                          database.ref('/dev_env/sendFeed');
                                       try {
                                         await userResponseFieldRef.set(true);
                                         print(
@@ -320,7 +320,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                     onCancelBtnTap: () async {
                                       Navigator.pop(context);
                                       DatabaseReference userResponseFieldRef =
-                                          database.ref('/vdb_poc/sendFeed');
+                                          database.ref('/dev_env/sendFeed');
 
                                       try {
                                         await userResponseFieldRef.set(true);
@@ -501,7 +501,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                             callBack: () async {
                               // loaderProvider.showLoader();
                               DatabaseReference userResponseFieldRef = database
-                                  .ref('/vdb_poc/unlockDoor');
+                                  .ref('/dev_env/unlockDoor');
                               try {
                                 await userResponseFieldRef.set(true);
                                 int value = await webApi.unlockDoor(context);

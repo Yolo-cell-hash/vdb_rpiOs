@@ -19,31 +19,34 @@ class ConnectedScreenUnlockCard extends StatefulWidget {
   });
 
   @override
-  State<ConnectedScreenUnlockCard> createState() => _ConnectedScreenUnlockCardState();
+  State<ConnectedScreenUnlockCard> createState() =>
+      _ConnectedScreenUnlockCardState();
 }
 
 class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
-  BleUtil bleUtil= BleUtil();
+  BleUtil bleUtil = BleUtil();
   WebApi webApi = WebApi();
 
   @override
   Widget build(BuildContext context) {
     final macAddress = Provider.of<LoaderProvider>(context).macAddress;
+    final wifiState = Provider.of<LoaderProvider>(context).wifiState;
+    print(
+      '-------------------------------------------------- WIFI STATE = $wifiState -----------------------------------------',
+    );
 
     return SizedBox(
       width: double.infinity,
       child: Card(
         elevation: 4.0,
         child: Padding(
-          padding: const EdgeInsets.only(
-              left: 20.0, right: 20.0, bottom: 20.0),
+          padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 5.0),
+                  padding: const EdgeInsets.symmetric(vertical: 5.0),
                   width: 160,
                   color: Colors.grey,
                   child: const Text(
@@ -53,11 +56,9 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 20.0,
-              ),
+              const SizedBox(height: 20.0),
               GestureDetector(
-                  onTap: widget.onUnlock,
+                onTap: widget.onUnlock,
                 child: Center(
                   child: Container(
                     width: 200.0,
@@ -96,9 +97,7 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 25,
-              ),
+              const SizedBox(height: 25),
               Center(
                 child: Text(
                   widget.statusTag,
@@ -109,21 +108,35 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 10,
-              ),
-               Center(
+              const SizedBox(height: 10),
+              Center(
                 child: GestureDetector(
-                  onTap: ()async{
-                    await webApi.sendNotification(context);
+                  onTap: () async {
+                    // await webApi.sendNotification(context);
                   },
                   child: Text(
                     'Auto - Locked',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.black,
-                    ),
+                    style: TextStyle(fontSize: 15, color: Colors.black),
                   ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 30,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.wifi,
+                      color: wifiState ? Colors.green : Colors.red,
+                      size: 25,
+                    ),
+                    const VerticalDivider(color: Colors.grey, thickness: 1.5),
+                    Icon(Icons.battery_full, color: Colors.green, size: 25),
+                    const VerticalDivider(color: Colors.grey, thickness: 1.5),
+                    Icon(Icons.door_back_door, color: Colors.blue, size: 25),
+                  ],
                 ),
               ),
             ],

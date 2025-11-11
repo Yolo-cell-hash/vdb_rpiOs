@@ -37,11 +37,11 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
             });
             try {
               DatabaseReference deleteUsers = database.ref(
-                '/vdb_poc/deleteUsers',
+                '/dev_env/deleteUsers',
               );
               await deleteUsers.set(name);
 
-              DatabaseReference ack = database.ref('/vdb_poc/ack');
+              DatabaseReference ack = database.ref('/dev_env/ack');
               final DatabaseEvent event = await ack.onValue.skip(1).first;
 
               final DataSnapshot snapshot = event.snapshot;

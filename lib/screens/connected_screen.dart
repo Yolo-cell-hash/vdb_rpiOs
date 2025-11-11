@@ -43,7 +43,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
     try {
       int value = await webApi.unlockDoor(context);
 
-      if(value == 200){
+      if (value == 200) {
         setState(() {
           lockIcon = Icons.lock_open_rounded;
           lockedIconColor = Colors.green;
@@ -58,7 +58,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
             statusTag = 'Room is Locked';
           });
         });
-      } else{
+      } else {
         setState(() {
           lockIcon = Icons.lock;
           lockedIconColor = Colors.red;
@@ -72,26 +72,32 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
 
   @override
   void initState() {
+    FbUtils fbUtils = FbUtils();
+
     webApi.getLockList(context);
+    fbUtils.readWifiState();
     super.initState();
 
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
-    FbUtils fbUtils = FbUtils();
-    DatabaseReference survaillanceRef = fbUtils.database.ref('/vdb_poc/survailanceModeEnabled');
 
-    survaillanceRef.once().then((DatabaseEvent event) {
-      if (event.snapshot.exists) {
-        bool survaillanceEnabled = event.snapshot.value as bool? ?? false;
-        setState(() {
-          positive = survaillanceEnabled; // Set the toggle state based on Firebase value
+    DatabaseReference survaillanceRef = fbUtils.database.ref(
+      '/dev_env/survailanceModeEnabled',
+    );
+    survaillanceRef
+        .once()
+        .then((DatabaseEvent event) {
+          if (event.snapshot.exists) {
+            bool survaillanceEnabled = event.snapshot.value as bool? ?? false;
+            setState(() {
+              positive = survaillanceEnabled;
+            });
+
+            loaderProvider.setSurvailanceMode(survaillanceEnabled);
+          }
+        })
+        .catchError((error) {
+          print('Error fetching surveillance mode: $error');
         });
-
-        // Also update the provider state
-        loaderProvider.setSurvailanceMode(survaillanceEnabled);
-      }
-    }).catchError((error) {
-      print('Error fetching surveillance mode: $error');
-    });
   }
 
   @override
@@ -99,7 +105,6 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FirebaseDatabase database = fbUtils.database;
     final isLoading = Provider.of<LoaderProvider>(context).isLoading;
-
     return SafeArea(
       child: ModalProgressHUD(
         inAsyncCall: isLoading,
@@ -116,15 +121,13 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
               ),
             ),
             leading: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
-                onPressed: () async {
-                  Navigator.pop(context);
-                },
-              ),
+              builder:
+                  (context) => IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                    },
+                  ),
             ),
             title: const Text(
               'Your Room',
@@ -139,16 +142,16 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Main Door',
                         style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       SizedBox(
                         child: AnimatedToggleSwitch<bool>.dual(
@@ -172,8 +175,12 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                           onChanged: (b) async {
                             setState(() => positive = b);
 
-                            DatabaseReference survailanceMode = database.ref('/vdb_poc/survailanceModeEnabled');
-                            DatabaseReference ack = database.ref('/vdb_poc/ack');
+                            DatabaseReference survailanceMode = database.ref(
+                              '/dev_env/survailanceModeEnabled',
+                            );
+                            DatabaseReference ack = database.ref(
+                              '/dev_env/ack',
+                            );
 
                             try {
                               // Set up listener for acknowledgment first
@@ -189,10 +196,12 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                               // Process the response
                               if (snapshot.exists) {
                                 var data = snapshot.value.toString();
-                                if(data.isNotEmpty && data.contains('Success')) {
+                                if (data.isNotEmpty &&
+                                    data.contains('Success')) {
                                   loaderProvider.hideLoader();
                                   loaderProvider.setSurvailanceMode(b);
-                                } else if(data.isNotEmpty && data.contains('Error')) {
+                                } else if (data.isNotEmpty &&
+                                    data.contains('Error')) {
                                   loaderProvider.hideLoader();
                                   // Reset state if there was an error
                                   setState(() => positive = !b);
@@ -218,7 +227,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                                   confirmBtnText: 'OK',
                                 );
                               }
-                            } catch(e) {
+                            } catch (e) {
                               loaderProvider.hideLoader();
                               // Reset state if exception
                               setState(() => positive = !b);
@@ -232,27 +241,27 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                               );
                             }
                           },
-                          styleBuilder: (b) => ToggleStyle(
-                              indicatorColor: b ? Colors.green : Colors.red),
-                          iconBuilder: (value) => value
-                              ? const Icon(Icons.video_call_rounded)
-                              : const Icon(Icons.lock),
+                          styleBuilder:
+                              (b) => ToggleStyle(
+                                indicatorColor: b ? Colors.green : Colors.red,
+                              ),
+                          iconBuilder:
+                              (value) =>
+                                  value
+                                      ? const Icon(Icons.video_call_rounded)
+                                      : const Icon(Icons.lock),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
                   ConnectedScreenUnlockCard(
                     lockIcon: lockIcon,
                     lockedIconColor: lockedIconColor,
                     statusTag: statusTag,
                     onUnlock: handleUnlock,
                   ),
-                  SizedBox(
-                    height: 15,
-                  ),
+                  SizedBox(height: 15),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
