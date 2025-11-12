@@ -10,6 +10,7 @@ class ConnectedScreenUnlockCard extends StatefulWidget {
   final Color lockedIconColor;
   final String statusTag;
   final Function() onUnlock;
+  final bool isCheckingWifi;
 
   const ConnectedScreenUnlockCard({
     super.key,
@@ -17,6 +18,7 @@ class ConnectedScreenUnlockCard extends StatefulWidget {
     required this.lockedIconColor,
     required this.statusTag,
     required this.onUnlock,
+    required this.isCheckingWifi,
   });
 
   @override
@@ -116,15 +118,7 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Tada(
-                      animate: wifiState? false: true,
-                      infinite: wifiState? false: true,
-                      child: Icon(
-                        Icons.wifi,
-                        color: wifiState ? Colors.green : Colors.red,
-                        size: 25,
-                      ),
-                    ),
+                    _buildWifiIndicator(wifiState),
                     const VerticalDivider(color: Colors.grey, thickness: 1.5),
                     Icon(Icons.battery_full, color: Colors.green, size: 25),
                     const VerticalDivider(color: Colors.grey, thickness: 1.5),
@@ -137,5 +131,30 @@ class _ConnectedScreenUnlockCardState extends State<ConnectedScreenUnlockCard> {
         ),
       ),
     );
+  }
+
+  Widget _buildWifiIndicator(bool wifiState) {
+    if (widget.isCheckingWifi) {
+      // Show only loading indicator while checking (icon hidden)
+      return SizedBox(
+        width: 25,
+        height: 25,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+        ),
+      );
+    } else {
+      // Show WiFi icon with appropriate color and animation
+      return Tada(
+        animate: !wifiState,
+        infinite: !wifiState,
+        child: Icon(
+          Icons.wifi,
+          color: wifiState ? Colors.green : Colors.red,
+          size: 25,
+        ),
+      );
+    }
   }
 }

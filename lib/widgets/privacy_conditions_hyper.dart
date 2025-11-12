@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vdp_poc_new/screens/home_screen.dart';
 import 'package:vdp_poc_new/screens/connected_screen.dart';
+import 'package:vdp_poc_new/screens/landing_screen.dart';
 
 class PrivacyConditionsHyper extends StatelessWidget {
   const PrivacyConditionsHyper({super.key});
@@ -31,7 +32,7 @@ class PrivacyConditionsHyper extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ConnectedScreen(),
+                          builder: (context) => const LandingScreen(),
                         ),
                       );
                     },

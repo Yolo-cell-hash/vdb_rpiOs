@@ -32,6 +32,9 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
   Color unlockedIconColor = Colors.green;
   String statusTag = 'Room is Locked';
   bool survailanceModeEnabled = false;
+  late bool isWifiConnected;
+  bool _didChangeDependenciesRun = false; // Flag to run logic only once
+  bool isCheckingWifi = false; // Flag to show WiFi checking state
 
   WebApi webApi = WebApi();
   FbUtils fbUtils = FbUtils();
@@ -70,34 +73,98 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
     }
   }
 
+  Future<void> checkWifiConnection() async {
+    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+    FirebaseDatabase database = fbUtils.database;
+    DatabaseReference wifiState = database.ref('/dev_env/wifi_state');
+
+    setState(() {
+      isCheckingWifi = true;
+    });
+
+    try {
+      // Get current wifi_state value
+      DataSnapshot snapshot = await wifiState.get();
+      bool currentWifiState = snapshot.value as bool? ?? false;
+
+      print('Current WiFi state: $currentWifiState');
+
+      // If it's true, set it to false
+      if (currentWifiState) {
+        await wifiState.set(false);
+        print('WiFi state set to false, waiting for device response...');
+      }
+
+      // Wait for up to 5 seconds for it to change back to true
+      bool wifiConnected = false;
+      DateTime startTime = DateTime.now();
+
+      while (DateTime.now().difference(startTime).inSeconds < 5) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        DataSnapshot checkSnapshot = await wifiState.get();
+        bool currentState = checkSnapshot.value as bool? ?? false;
+
+        if (currentState == true) {
+          wifiConnected = true;
+          print('WiFi state changed back to true - Device is connected!');
+          break;
+        }
+      }
+
+      // Update the provider with the final state
+      loaderProvider.setWifiState(wifiConnected);
+
+      if (!wifiConnected) {
+        print('WiFi check timeout - Device did not respond');
+      }
+
+    } catch (e) {
+      print('Error occurred in checking wifi state - $e');
+      loaderProvider.setWifiState(false);
+    } finally {
+      setState(() {
+        isCheckingWifi = false;
+      });
+    }
+  }
+
   @override
   void initState() {
-    FbUtils fbUtils = FbUtils();
-
-    webApi.getLockList(context);
-    fbUtils.readWifiState();
     super.initState();
+    webApi.getLockList(context);
+  }
 
-    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didChangeDependenciesRun) {
+      final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
 
-    DatabaseReference survaillanceRef = fbUtils.database.ref(
-      '/dev_env/survailanceModeEnabled',
-    );
-    survaillanceRef
-        .once()
-        .then((DatabaseEvent event) {
-          if (event.snapshot.exists) {
-            bool survaillanceEnabled = event.snapshot.value as bool? ?? false;
-            setState(() {
-              positive = survaillanceEnabled;
-            });
+      DatabaseReference survaillanceRef = fbUtils.database.ref(
+        '/dev_env/survailanceModeEnabled',
+      );
 
-            loaderProvider.setSurvailanceMode(survaillanceEnabled);
-          }
-        })
-        .catchError((error) {
-          print('Error fetching surveillance mode: $error');
-        });
+      // Check WiFi connection on screen initialization
+      checkWifiConnection();
+
+      survaillanceRef
+          .once()
+          .then((DatabaseEvent event) {
+        if (mounted && event.snapshot.exists) { // Check if widget is still in the tree
+          bool survaillanceEnabled = event.snapshot.value as bool? ?? false;
+          setState(() {
+            positive = survaillanceEnabled;
+          });
+
+          loaderProvider.setSurvailanceMode(survaillanceEnabled);
+        }
+      })
+          .catchError((error) {
+        print('Error fetching surveillance mode: $error');
+      });
+
+      _didChangeDependenciesRun = true;
+    }
   }
 
   @override
@@ -123,11 +190,11 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
             leading: Builder(
               builder:
                   (context) => IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () async {
-                      Navigator.pop(context);
-                    },
-                  ),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () async {
+                  Navigator.pop(context);
+                },
+              ),
             ),
             title: const Text(
               'Your Room',
@@ -243,13 +310,13 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                           },
                           styleBuilder:
                               (b) => ToggleStyle(
-                                indicatorColor: b ? Colors.green : Colors.red,
-                              ),
+                            indicatorColor: b ? Colors.green : Colors.red,
+                          ),
                           iconBuilder:
                               (value) =>
-                                  value
-                                      ? const Icon(Icons.video_call_rounded)
-                                      : const Icon(Icons.lock),
+                          value
+                              ? const Icon(Icons.video_call_rounded)
+                              : const Icon(Icons.lock),
                         ),
                       ),
                     ],
@@ -260,6 +327,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                     lockedIconColor: lockedIconColor,
                     statusTag: statusTag,
                     onUnlock: handleUnlock,
+                    isCheckingWifi: isCheckingWifi,
                   ),
                   SizedBox(height: 15),
                   Row(
