@@ -17,11 +17,12 @@ class LandingScreen extends StatefulWidget {
   State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> {
+class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin {
   WebSocketSingleton webSocketSingleton = WebSocketSingleton();
 
   @override
   void dispose() {
+    _animationController?.dispose();
     webSocketSingleton.close();
     super.dispose();
   }
@@ -29,9 +30,30 @@ class _LandingScreenState extends State<LandingScreen> {
   int _selectedIndex = 0;
   late bool isWifiConnected;
   bool isCheckingWifi = true; // Start as true to show loading initially
+  bool showSuccessAnimation = false; // Flag for success animation
+  bool showFailureAnimation = false; // Flag for failure animation
   bool _didChangeDependenciesRun = false;
 
+  AnimationController? _animationController;
+  Animation<double>? _scaleAnimation;
+
   FbUtils fbUtils = FbUtils();
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController!,
+        curve: Curves.elasticOut,
+      ),
+    );
+  }
 
   Future<void> checkWifiConnection() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
@@ -40,6 +62,8 @@ class _LandingScreenState extends State<LandingScreen> {
 
     setState(() {
       isCheckingWifi = true;
+      showSuccessAnimation = false;
+      showFailureAnimation = false;
     });
 
     try {
@@ -59,7 +83,7 @@ class _LandingScreenState extends State<LandingScreen> {
       bool wifiConnected = false;
       DateTime startTime = DateTime.now();
 
-      while (DateTime.now().difference(startTime).inSeconds < 7) {
+      while (DateTime.now().difference(startTime).inSeconds < 5) {
         await Future.delayed(const Duration(milliseconds: 500));
         DataSnapshot checkSnapshot = await wifiState.get();
         bool currentState = checkSnapshot.value as bool? ?? false;
@@ -76,7 +100,64 @@ class _LandingScreenState extends State<LandingScreen> {
 
       if (!wifiConnected) {
         print('WiFi check timeout - Device did not respond');
-        // Redirect to disconnected screen if WiFi is not connected
+
+        // Show failure animation before redirecting
+        if (mounted) {
+          setState(() {
+            showFailureAnimation = true;
+          });
+
+          _animationController!.forward();
+
+          // Wait for animation to complete
+          await Future.delayed(const Duration(milliseconds: 1500));
+
+          // Navigate without setting isCheckingWifi to false
+          // This keeps the splash screen visible during navigation
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WifiDisconnectedScreen(),
+              ),
+            );
+          }
+        }
+      } else {
+        // Show success animation before proceeding to main screen
+        if (mounted) {
+          setState(() {
+            showSuccessAnimation = true;
+          });
+
+          _animationController!.forward();
+
+          // Wait for animation to complete + a little extra time
+          await Future.delayed(const Duration(milliseconds: 1500));
+
+          if (mounted) {
+            setState(() {
+              isCheckingWifi = false;
+              showSuccessAnimation = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error occurred in checking wifi state - $e');
+      loaderProvider.setWifiState(false);
+
+      // Show failure animation on error
+      if (mounted) {
+        setState(() {
+          showFailureAnimation = true;
+        });
+
+        _animationController!.forward();
+
+        await Future.delayed(const Duration(milliseconds: 1500));
+
+        // Navigate without setting isCheckingWifi to false
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -86,22 +167,6 @@ class _LandingScreenState extends State<LandingScreen> {
           );
         }
       }
-    } catch (e) {
-      print('Error occurred in checking wifi state - $e');
-      loaderProvider.setWifiState(false);
-      // Redirect to disconnected screen on error
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const WifiDisconnectedScreen(),
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        isCheckingWifi = false;
-      });
     }
   }
 
@@ -140,27 +205,109 @@ class _LandingScreenState extends State<LandingScreen> {
               height: 120,
             ),
             const SizedBox(height: 50),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              strokeWidth: 4,
+            // Show loading indicator, success checkmark, or failure icon
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(
+                  scale: animation,
+                  child: child,
+                );
+              },
+              child: showSuccessAnimation
+                  ? ScaleTransition(
+                key: const ValueKey('success'),
+                scale: _scaleAnimation!,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    color: Colors.green,
+                    size: 50,
+                  ),
+                ),
+              )
+                  : showFailureAnimation
+                  ? ScaleTransition(
+                key: const ValueKey('failure'),
+                scale: _scaleAnimation!,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.red,
+                    size: 50,
+                  ),
+                ),
+              )
+                  : const SizedBox(
+                key: ValueKey('loading'),
+                width: 50,
+                height: 50,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 4,
+                ),
+              ),
             ),
             const SizedBox(height: 30),
-            const Text(
-              'Checking Device Connection...',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                showSuccessAnimation
+                    ? 'Connected Successfully!'
+                    : showFailureAnimation
+                    ? 'Connection Failed!'
+                    : 'Checking Device Connection...',
+                key: ValueKey('$showSuccessAnimation-$showFailureAnimation'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Please wait',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+            if (!showSuccessAnimation && !showFailureAnimation)
+              const Text(
+                'Please wait',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              )
+            else if (showFailureAnimation)
+              const Text(
+                'Unable to reach device',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
               ),
-            ),
           ],
         ),
       ),
