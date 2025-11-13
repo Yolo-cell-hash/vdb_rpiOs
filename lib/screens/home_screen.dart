@@ -8,7 +8,6 @@ import 'package:vdp_poc_new/widgets/scan_card.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 

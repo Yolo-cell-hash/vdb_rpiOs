@@ -99,7 +99,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
       bool wifiConnected = false;
       DateTime startTime = DateTime.now();
 
-      while (DateTime.now().difference(startTime).inSeconds < 5) {
+      while (DateTime.now().difference(startTime).inSeconds < 7) {
         await Future.delayed(const Duration(milliseconds: 500));
         DataSnapshot checkSnapshot = await wifiState.get();
         bool currentState = checkSnapshot.value as bool? ?? false;
