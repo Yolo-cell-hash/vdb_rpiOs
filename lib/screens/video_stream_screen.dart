@@ -67,7 +67,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
     try {
       await _client.connect();
       await _client.attachToStreamingPlugin();
-      await _client.keepAlive();
+      // await _client.keepAlive();
 
       setState(() {
         _connected = true;
@@ -93,7 +93,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
     try {
       await _client.connect();
       await _client.attachToStreamingPlugin();
-      await _client.keepAlive();
+      // await _client.keepAlive();
       setState(() {
         _connected = true;
         _status = 'Connected to Janus Streaming';
