@@ -139,6 +139,8 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                 ),
                 child: ElevatedButton(
                   style: buttonStyleEnabled,
+
+                  // Replace the onPressed method in your ElevatedButton with this:
                   onPressed: () async {
                     final currCtxt = context;
                     final loaderProvider = Provider.of<LoaderProvider>(
@@ -148,61 +150,84 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
 
                     final String macAddress =
                         widget.device.device.id.toString();
-
                     print("Mac Address is - $macAddress");
-                    final navigator = Navigator.of(context);
+
                     try {
                       loaderProvider.showLoader();
                       final device = BluetoothDevice(
                         remoteId: DeviceIdentifier(macAddress),
                       );
 
-                      bool connectionStatus = await bleUtil.isDeviceConnected(macAddress);
+                      bool connectionStatus = await bleUtil.isDeviceConnected(
+                        macAddress,
+                      );
+
+                      if (!connectionStatus) {
+                        throw Exception('Device not connected');
+                      }
+
+                      print(
+                        '-------------------------------------------------------------',
+                      );
 
                       String combinedWifiCreds = "$ssid,$password";
 
-                     if (connectionStatus) {
-                      print('-------------------------------------------------------------' );
+                      // Set up the notification subscription FIRST
+                      Future<String?> responseFuture = bleUtil.subscribeToChar(
+                        device,
+                      );
 
-                        await bleUtil.sendData(device, combinedWifiCreds);
-                        print("Wifi Credentials sent are - $combinedWifiCreds");
-                        //
-                        String? response = await bleUtil.subscribeToChar(device);
+                      // Give a small delay to ensure subscription is set up
+                      await Future.delayed(Duration(milliseconds: 500));
 
-                        print('ReSPONSE IS - $response');
+                      // Now send the WiFi credentials
+                      await bleUtil.sendData(device, combinedWifiCreds);
+                      print("WiFi Credentials sent are - $combinedWifiCreds");
 
-                        if(response != null && response.contains('Connected')){
-                          QuickAlert.show(
-                            context: context,
-                            type: QuickAlertType.success,
-                            title: 'Success',
-                            text: 'WiFi Credentials configured successfully',
-                            onConfirmBtnTap: ()async{
-                              // final navigator = Navigator.of(
-                              //   context,
-                              // );    MIGHT NEED THIS FOR LATER
-                              Navigator.pop(context);
-                              await bleUtil.disconnectFromDevice(macAddress);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const LandingScreen(),
-                                ),
-                              );
-                            }
-                          );
-                        }
+                      // Wait for the response
+                      String? response = await responseFuture;
+
+                      print('RESPONSE IS - $response');
+
+                      if (response != null && response.contains('Connected')) {
+                        loaderProvider.hideLoader();
+
+                        if (!mounted) return;
+
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.success,
+                          title: 'Success',
+                          text: 'WiFi Credentials configured successfully',
+                          onConfirmBtnTap: () async {
+                            Navigator.pop(context); // Close alert
+                            await bleUtil.disconnectFromDevice(macAddress);
+                            if (!mounted) return;
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LandingScreen(),
+                              ),
+                            );
+                          },
+                        );
+                      } else {
+                        throw Exception(
+                          'Failed to connect to WiFi. Response: $response',
+                        );
                       }
                     } catch (e) {
+                      loaderProvider.hideLoader();
+
+                      if (!mounted) return;
+
                       QuickAlert.show(
                         context: context,
                         type: QuickAlertType.error,
                         title: 'Oops...',
-                        text: e.toString(),
+                        text: 'Connection failed: ${e.toString()}',
                         confirmBtnColor: const Color(0xFFE30A17),
                       );
-                    } finally {
-                      loaderProvider.hideLoader();
                     }
                   },
                   child: const Text(

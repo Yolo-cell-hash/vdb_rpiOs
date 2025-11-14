@@ -58,7 +58,32 @@ class WifiDisconnectedScreen extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.settings),
-                    label: const Text('Configure', style: TextStyle(fontSize: 16)),
+                    label: const Text(
+                      'Configure',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20,),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text(
+                      'Retry',
+                      style: TextStyle(fontSize: 16),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.blue,

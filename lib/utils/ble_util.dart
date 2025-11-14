@@ -187,51 +187,23 @@ class BleUtil {
     }
   }
 
-  Future<String?> subscribeToChar(BluetoothDevice device) async {
-    try {
-      List<BluetoothService> services = await device.discoverServices();
-      for (BluetoothService service in services) {
-        for (BluetoothCharacteristic c in service.characteristics) {
-          try {
-            if (c.properties.write) {
-              await c.setNotifyValue(true);
-              final completer = Completer<String?>();
-              c.value.listen((value) {
-                final result = utf8.decode(value);
-                print('Received command code - $result');
-                if (!completer.isCompleted) {
-                  completer.complete(result);
-                }
-              });
-              return await completer.future.timeout(Duration(seconds: 5), onTimeout: () => null);
-            }
-          } catch (e) {
-            print('$e -  during subscribing');
-            return "0";
-          }
-        }
-      }
-    } catch (e) {
-      print('Error occured while subscribing - $e');
-    }
-    return "1";
-  }
-
-  // Future<String?> subscribeToChar(BluetoothDevice device)async{
-  //   try{
+  // Future<String?> subscribeToChar(BluetoothDevice device) async {
+  //   try {
   //     List<BluetoothService> services = await device.discoverServices();
-  //     late String connectionStatus;
   //     for (BluetoothService service in services) {
-  //       var characteristics = service.characteristics;
-  //       for (BluetoothCharacteristic c in characteristics) {
+  //       for (BluetoothCharacteristic c in service.characteristics) {
   //         try {
   //           if (c.properties.write) {
   //             await c.setNotifyValue(true);
-  //             c.value.listen((value){
-  //               connectionStatus = utf8.decode(value);
-  //               print('Received command code - $connectionStatus');
+  //             final completer = Completer<String?>();
+  //             c.value.listen((value) {
+  //               final result = utf8.decode(value);
+  //               print('Received command code - $result');
+  //               if (!completer.isCompleted) {
+  //                 completer.complete(result);
+  //               }
   //             });
-  //             return connectionStatus;
+  //             return await completer.future.timeout(Duration(seconds: 5), onTimeout: () => null);
   //           }
   //         } catch (e) {
   //           print('$e -  during subscribing');
@@ -239,7 +211,7 @@ class BleUtil {
   //         }
   //       }
   //     }
-  //   }catch(e){
+  //   } catch (e) {
   //     print('Error occured while subscribing - $e');
   //   }
   //   return "1";
@@ -322,6 +294,55 @@ class BleUtil {
       print('Error discovering services: $e');
     }
     return null;
+  }
+
+// Replace the subscribeToChar method with this corrected version:
+
+  Future<String?> subscribeToChar(BluetoothDevice device) async {
+    try {
+      List<BluetoothService> services = await device.discoverServices();
+      for (BluetoothService service in services) {
+        for (BluetoothCharacteristic c in service.characteristics) {
+          try {
+            // Look for notify or indicate characteristics, not write!
+            if (c.properties.notify || c.properties.indicate) {
+              await c.setNotifyValue(true);
+
+              final completer = Completer<String?>();
+
+              // Use lastValueStream instead of value.listen
+              final subscription = c.lastValueStream.listen((value) {
+                if (value.isNotEmpty) {
+                  final result = utf8.decode(value);
+                  print('Received command code - $result');
+                  if (!completer.isCompleted) {
+                    completer.complete(result);
+                  }
+                }
+              });
+
+              try {
+                final result = await completer.future.timeout(
+                  Duration(seconds: 30), // Increased timeout for WiFi connection
+                  onTimeout: () => null,
+                );
+                await subscription.cancel();
+                return result;
+              } catch (e) {
+                await subscription.cancel();
+                throw e;
+              }
+            }
+          } catch (e) {
+            print('$e - during subscribing');
+            continue; // Try next characteristic instead of returning
+          }
+        }
+      }
+    } catch (e) {
+      print('Error occurred while subscribing - $e');
+    }
+    return null; // Return null if no suitable characteristic found
   }
 
 }
