@@ -139,8 +139,6 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                 ),
                 child: ElevatedButton(
                   style: buttonStyleEnabled,
-
-                  // Replace the onPressed method in your ElevatedButton with this:
                   onPressed: () async {
                     final currCtxt = context;
                     final loaderProvider = Provider.of<LoaderProvider>(
@@ -149,7 +147,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                     );
 
                     final String macAddress =
-                        widget.device.device.id.toString();
+                    widget.device.device.id.toString();
                     print("Mac Address is - $macAddress");
 
                     try {
@@ -169,31 +167,24 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                       print(
                         '-------------------------------------------------------------',
                       );
+                      print('Sending WiFi credentials and waiting for device response...');
 
-                      String combinedWifiCreds = "$ssid,$password";
-
-                      // Set up the notification subscription FIRST
-                      Future<String?> responseFuture = bleUtil.subscribeToChar(
+                      // Use the new method that handles everything properly
+                      String? response = await bleUtil.sendWiFiCredentialsAndWaitForResponse(
                         device,
+                        ssid,
+                        password,
                       );
 
-                      // Give a small delay to ensure subscription is set up
-                      await Future.delayed(Duration(milliseconds: 500));
+                      print('Final response received: $response');
 
-                      // Now send the WiFi credentials
-                      await bleUtil.sendData(device, combinedWifiCreds);
-                      print("WiFi Credentials sent are - $combinedWifiCreds");
+                      loaderProvider.hideLoader();
 
-                      // Wait for the response
-                      String? response = await responseFuture;
+                      if (!mounted) return;
 
-                      print('RESPONSE IS - $response');
-
-                      if (response != null && response.contains('Connected')) {
-                        loaderProvider.hideLoader();
-
-                        if (!mounted) return;
-
+                      if (response != null &&
+                          (response.contains('Connected') ||
+                              response.toLowerCase().contains('success'))) {
                         QuickAlert.show(
                           context: context,
                           type: QuickAlertType.success,
@@ -210,6 +201,14 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                               ),
                             );
                           },
+                        );
+                      } else if (response != null && response.contains('Timeout')) {
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.warning,
+                          title: 'Timeout',
+                          text: 'Device did not respond in time. Please check your WiFi credentials and try again.',
+                          confirmBtnColor: Colors.orange,
                         );
                       } else {
                         throw Exception(

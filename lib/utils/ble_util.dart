@@ -83,7 +83,7 @@ class BleUtil {
     final device = BluetoothDevice(remoteId: DeviceIdentifier(bleAddress));
     try {
       List<BluetoothDevice> connectedDevices =
-          await FlutterBluePlus.connectedDevices;
+      await FlutterBluePlus.connectedDevices;
       for (BluetoothDevice connectedDevice in connectedDevices) {
         if (connectedDevice.remoteId == device.remoteId) {
           return true;
@@ -104,14 +104,14 @@ class BleUtil {
         deviceID = result.device.remoteId.toString();
         //deviceManufData = result.advertisementData.manufacturerData.values.toString();
         String hexString =
-            result.advertisementData.manufacturerData.values
-                .expand((list) => list)
-                .map((value) => value.toRadixString(16).padLeft(2, '0'))
-                .join();
+        result.advertisementData.manufacturerData.values
+            .expand((list) => list)
+            .map((value) => value.toRadixString(16).padLeft(2, '0'))
+            .join();
         deviceManufData = String.fromCharCodes(
           List.generate(
             hexString.length ~/ 2,
-            (i) => int.parse(hexString.substring(i * 2, i * 2 + 2), radix: 16),
+                (i) => int.parse(hexString.substring(i * 2, i * 2 + 2), radix: 16),
           ),
         );
         break;
@@ -187,42 +187,12 @@ class BleUtil {
     }
   }
 
-  // Future<String?> subscribeToChar(BluetoothDevice device) async {
-  //   try {
-  //     List<BluetoothService> services = await device.discoverServices();
-  //     for (BluetoothService service in services) {
-  //       for (BluetoothCharacteristic c in service.characteristics) {
-  //         try {
-  //           if (c.properties.write) {
-  //             await c.setNotifyValue(true);
-  //             final completer = Completer<String?>();
-  //             c.value.listen((value) {
-  //               final result = utf8.decode(value);
-  //               print('Received command code - $result');
-  //               if (!completer.isCompleted) {
-  //                 completer.complete(result);
-  //               }
-  //             });
-  //             return await completer.future.timeout(Duration(seconds: 5), onTimeout: () => null);
-  //           }
-  //         } catch (e) {
-  //           print('$e -  during subscribing');
-  //           return "0";
-  //         }
-  //       }
-  //     }
-  //   } catch (e) {
-  //     print('Error occured while subscribing - $e');
-  //   }
-  //   return "1";
-  // }
-
   void readData(BluetoothDevice device) async {
     try {
       List<BluetoothService> services = await device.discoverServices();
       for (BluetoothService service in services) {
         for (BluetoothCharacteristic characteristic
-            in service.characteristics) {
+        in service.characteristics) {
           if (characteristic.properties.notify) {
             await characteristic.setNotifyValue(true);
             characteristic.onValueReceived.listen((value) {
@@ -244,60 +214,97 @@ class BleUtil {
     }
   }
 
-  Future<String?> subscribeToWiFiStatus(BluetoothDevice device) async {
+  // Modified method to wait for the SECOND notification (actual server response)
+  Future<String?> sendWiFiCredentialsAndWaitForResponse(
+      BluetoothDevice device,
+      String ssid,
+      String password,
+      ) async {
     try {
       List<BluetoothService> services = await device.discoverServices();
+      BluetoothCharacteristic? writeChar;
+      BluetoothCharacteristic? notifyChar;
 
+      // Find the write and notify characteristics
       for (BluetoothService service in services) {
-        for (BluetoothCharacteristic characteristic in service.characteristics) {
-          try {
-            // Check for both notify and indicate properties
-            if (characteristic.properties.notify || characteristic.properties.indicate) {
-              // Enable notifications
-              await characteristic.setNotifyValue(true);
-
-              // Create stream controller to manage notifications
-              final streamController = StreamController<String>();
-
-              // Subscribe to notifications
-              characteristic.lastValueStream.listen(
-                (value) {
-                  final status = utf8.decode(value);
-                  print('WiFi Connection Status: $status');
-                  streamController.add(status);
-                },
-                onError: (error) {
-                  print('Notification Error: $error');
-                  streamController.addError(error);
-                }
-              );
-
-              // Return the first notification that indicates success/failure
-              return await streamController.stream.firstWhere(
-                (status) => status.contains('Connected') || status.contains('Failed'),
-                orElse: () => 'null',
-              ).timeout(
-                Duration(seconds: 60),
-                onTimeout: () {
-                  print('Connection timeout');
-                  return 'null';
-                }
-              );
-            }
-          } catch (e) {
-            print('Error during subscription: $e');
-            continue;
+        for (BluetoothCharacteristic c in service.characteristics) {
+          if (c.properties.write) {
+            writeChar = c;
+          }
+          if (c.properties.notify || c.properties.indicate) {
+            notifyChar = c;
           }
         }
       }
+
+      if (writeChar == null || notifyChar == null) {
+        print('Required characteristics not found');
+        return null;
+      }
+
+      // Set up the notification listener FIRST
+      final completer = Completer<String?>();
+      await notifyChar.setNotifyValue(true);
+
+      print('Notification enabled, starting to listen...');
+
+      int notificationCount = 0;
+
+      // Listen for the response - skip first, return second
+      final subscription = notifyChar.lastValueStream.listen((value) {
+        if (value.isNotEmpty && !completer.isCompleted) {
+          notificationCount++;
+          final result = utf8.decode(value);
+
+          if (notificationCount == 1) {
+            // First notification - this is the echo/acknowledgment
+            print('Notification #1 (Echo/Acknowledgment): $result');
+            print('Waiting for second notification (actual server response)...');
+          } else if (notificationCount == 2) {
+            // Second notification - this is the actual WiFi connection result
+            print('Notification #2 (Server Response): $result');
+            completer.complete(result);
+          }
+        }
+      });
+
+      // Small delay to ensure subscription is ready
+      await Future.delayed(Duration(milliseconds: 300));
+
+      // Send the WiFi credentials
+      String combinedWifiCreds = "$ssid,$password";
+      List<int> data = utf8.encode(combinedWifiCreds);
+      await writeChar.write(data, withoutResponse: false);
+      print('WiFi credentials sent: $combinedWifiCreds');
+      print('Waiting for device to connect to WiFi (up to 15 seconds)...');
+
+      // Wait for response with a 15-second timeout
+      try {
+        final result = await completer.future.timeout(
+          Duration(seconds: 15),
+          onTimeout: () {
+            print('Timeout waiting for WiFi connection response (received $notificationCount notification(s))');
+            if (notificationCount == 1) {
+              return 'Timeout: Device acknowledged but no server response received';
+            }
+            return 'Timeout: No response from device';
+          },
+        );
+
+        await subscription.cancel();
+        return result;
+      } catch (e) {
+        await subscription.cancel();
+        print('Error while waiting for response: $e');
+        throw e;
+      }
     } catch (e) {
-      print('Error discovering services: $e');
+      print('Error in sendWiFiCredentialsAndWaitForResponse: $e');
+      return null;
     }
-    return null;
   }
 
-// Replace the subscribeToChar method with this corrected version:
-
+  // Keep the old method for backward compatibility
   Future<String?> subscribeToChar(BluetoothDevice device) async {
     try {
       List<BluetoothService> services = await device.discoverServices();
@@ -344,5 +351,4 @@ class BleUtil {
     }
     return null; // Return null if no suitable characteristic found
   }
-
 }
