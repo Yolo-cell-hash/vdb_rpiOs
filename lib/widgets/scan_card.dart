@@ -15,43 +15,33 @@ class ScanCard extends StatefulWidget {
 }
 
 class _ScanCardState extends State<ScanCard> {
-  @override
-  bool isDeviceFound = false;
   BleUtil bleUtil = BleUtil();
   final String deviceName = 'My Pi';
-  bool isConnecting = false;
 
+  // Computed property instead of state variable
+  bool get isDeviceFound => widget.device.device.name == deviceName;
+
+  @override
   Widget build(BuildContext context) {
-    if (widget.device.device.name == deviceName) {
-      setState(() {
-        isDeviceFound = true;
-      });
-    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Container(
         decoration: BoxDecoration(
-          gradient:
-              widget.device.device.name == deviceName
-                  ? LinearGradient(
-                    colors: [Colors.lightBlueAccent, Colors.blue],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                  )
-                  : null,
-          borderRadius: BorderRadius.circular(20), // Match Card's border radius
+          gradient: isDeviceFound
+              ? LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.blue],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+          )
+              : null,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Card(
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              20,
-            ), // Match Container's border radius
+            borderRadius: BorderRadius.circular(20),
           ),
-          color:
-              widget.device.device.name != deviceName
-                  ? Colors.white
-                  : Colors.transparent,
+          color: !isDeviceFound ? Colors.white : Colors.transparent,
           child: ListTile(
             title: Text(
               "${widget.device.device.name}",
@@ -72,16 +62,16 @@ class _ScanCardState extends State<ScanCard> {
                 color: isDeviceFound ? Colors.white : Colors.black,
               ),
             ),
-
             onTap: () async {
-              final navigator = Navigator.of(
-                context,
-              ); // store the Navigator to avoid async context issues
+              final navigator = Navigator.of(context);
               final loaderProvider = Provider.of<LoaderProvider>(
                 context,
                 listen: false,
               );
-              final macAddressProvider = Provider.of<LoaderProvider>(context, listen: false);
+              final macAddressProvider = Provider.of<LoaderProvider>(
+                context,
+                listen: false,
+              );
 
               try {
                 loaderProvider.showLoader();
@@ -92,20 +82,22 @@ class _ScanCardState extends State<ScanCard> {
                 bool connectionStatus = await bleUtil.connectToDevice(
                   macAddress,
                 );
+
                 if (connectionStatus) {
                   print("Connection status is $connectionStatus");
                   navigator.push(
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              WifiConfigurationScreen(device: widget.device),
+                      builder: (context) =>
+                          WifiConfigurationScreen(device: widget.device),
                     ),
                   );
                 } else {
                   print('Connection failed');
+                  // Consider showing an error dialog here
                 }
               } catch (e) {
-                print(e);
+                print('Error connecting to device: $e');
+                // Consider showing an error dialog here
               } finally {
                 loaderProvider.hideLoader();
               }
