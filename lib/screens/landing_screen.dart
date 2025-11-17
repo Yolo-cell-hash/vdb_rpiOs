@@ -170,6 +170,15 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     }
   }
 
+  // Method to skip WiFi check and go directly to main screen
+  void _skipWifiCheck() {
+    setState(() {
+      isCheckingWifi = false;
+      showSuccessAnimation = false;
+      showFailureAnimation = false;
+    });
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -195,121 +204,167 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'images/gnb_new_logo_.svg',
-              color: Colors.white,
-              height: 120,
-            ),
-            const SizedBox(height: 50),
-            // Show loading indicator, success checkmark, or failure icon
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return ScaleTransition(
-                  scale: animation,
-                  child: child,
-                );
-              },
-              child: showSuccessAnimation
-                  ? ScaleTransition(
-                key: const ValueKey('success'),
-                scale: _scaleAnimation!,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.green,
-                    size: 50,
-                  ),
-                ),
-              )
-                  : showFailureAnimation
-                  ? ScaleTransition(
-                key: const ValueKey('failure'),
-                scale: _scaleAnimation!,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.red,
-                    size: 50,
-                  ),
-                ),
-              )
-                  : const SizedBox(
-                key: ValueKey('loading'),
-                width: 50,
-                height: 50,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 4,
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                showSuccessAnimation
-                    ? 'Connected Successfully!'
-                    : showFailureAnimation
-                    ? 'Connection Failed!'
-                    : 'Checking Device Connection...',
-                key: ValueKey('$showSuccessAnimation-$showFailureAnimation'),
-                style: const TextStyle(
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'images/gnb_new_logo_.svg',
                   color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+                  height: 120,
+                ),
+                const SizedBox(height: 50),
+                // Show loading indicator, success checkmark, or failure icon
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return ScaleTransition(
+                      scale: animation,
+                      child: child,
+                    );
+                  },
+                  child: showSuccessAnimation
+                      ? ScaleTransition(
+                    key: const ValueKey('success'),
+                    scale: _scaleAnimation!,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.green,
+                        size: 50,
+                      ),
+                    ),
+                  )
+                      : showFailureAnimation
+                      ? ScaleTransition(
+                    key: const ValueKey('failure'),
+                    scale: _scaleAnimation!,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                        size: 50,
+                      ),
+                    ),
+                  )
+                      : const SizedBox(
+                    key: ValueKey('loading'),
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      strokeWidth: 4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    showSuccessAnimation
+                        ? 'Connected Successfully!'
+                        : showFailureAnimation
+                        ? 'Connection Failed!'
+                        : 'Checking Device Connection...',
+                    key: ValueKey('$showSuccessAnimation-$showFailureAnimation'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (!showSuccessAnimation && !showFailureAnimation)
+                  const Text(
+                    'Please wait',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  )
+                else if (showFailureAnimation)
+                  const Text(
+                    'Unable to reach device',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Skip button positioned at the top-right
+          Positioned(
+            top: 40,
+            right: 20,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _skipWifiCheck,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'Skip',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            if (!showSuccessAnimation && !showFailureAnimation)
-              const Text(
-                'Please wait',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              )
-            else if (showFailureAnimation)
-              const Text(
-                'Unable to reach device',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
