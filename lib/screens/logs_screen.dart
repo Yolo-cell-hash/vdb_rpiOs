@@ -12,149 +12,355 @@ class LogsScreen extends StatefulWidget {
 }
 
 class _LogsScreenState extends State<LogsScreen> {
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final int _logsPerPage = 20;
+  final Map<String, Uint8List?> _imageCache = {};
 
-  Stream<QuerySnapshot> _getLogsStream() {
-    return _firestore
-        .collection('logs')
-        .where(FieldPath.documentId, isNotEqualTo: 'no_of_logs')
-        .orderBy('timestamp', descending: true)
-        .snapshots();
+  List<DocumentSnapshot> _allLogs = [];
+  DocumentSnapshot? _lastDocument;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialLogs();
   }
 
-  Uint8List? _decodeBase64Image(dynamic encodedImage) {
-    if (encodedImage == null) return null;
+  Future<void> _loadInitialLogs() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('logs')
+          .orderBy('timestamp', descending: true)
+          .limit(_logsPerPage)
+          .get();
+
+      setState(() {
+        _allLogs = querySnapshot.docs
+            .where((doc) => doc.id != 'no_of_logs')
+            .toList();
+
+        if (_allLogs.isNotEmpty) {
+          _lastDocument = _allLogs.last;
+        }
+
+        _hasMoreData = querySnapshot.docs.length == _logsPerPage;
+      });
+    } catch (e) {
+      print('Error loading initial logs: $e');
+    }
+  }
+
+  Future<void> _loadMoreLogs() async {
+    if (_isLoadingMore || !_hasMoreData || _lastDocument == null) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
 
     try {
-      if (encodedImage is Blob) {
-        return encodedImage.bytes;
-      } else if (encodedImage is String && encodedImage.isNotEmpty) {
-        return base64Decode(encodedImage);
-      }
-      return null;
+      final querySnapshot = await _firestore
+          .collection('logs')
+          .orderBy('timestamp', descending: true)
+          .startAfterDocument(_lastDocument!)
+          .limit(_logsPerPage)
+          .get();
+
+      final newLogs = querySnapshot.docs
+          .where((doc) => doc.id != 'no_of_logs')
+          .toList();
+
+      setState(() {
+        _allLogs.addAll(newLogs);
+
+        if (newLogs.isNotEmpty) {
+          _lastDocument = newLogs.last;
+        }
+
+        _hasMoreData = querySnapshot.docs.length == _logsPerPage;
+        _isLoadingMore = false;
+      });
     } catch (e) {
-      print('Error decoding image: $e');
+      print('Error loading more logs: $e');
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _refreshLogs() async {
+    setState(() {
+      _allLogs.clear();
+      _lastDocument = null;
+      _hasMoreData = true;
+      _imageCache.clear();
+    });
+    await _loadInitialLogs();
+  }
+
+  bool _isValidBase64(String str) {
+    if (str.isEmpty) return false;
+    str = str.replaceAll(RegExp(r'\s'), '');
+    if (str.length % 4 != 0) return false;
+    final base64Pattern = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
+    return base64Pattern.hasMatch(str);
+  }
+
+  Uint8List? _decodeBase64Image(dynamic encodedImage, String docId) {
+    if (encodedImage == null) return null;
+
+    // Check cache first
+    if (_imageCache.containsKey(docId)) {
+      return _imageCache[docId];
+    }
+
+    try {
+      Uint8List? decoded;
+
+      if (encodedImage is Blob) {
+        decoded = encodedImage.bytes;
+      } else if (encodedImage is String) {
+        if (!_isValidBase64(encodedImage)) {
+          // Silently handle invalid base64 - no need to log every time
+          _imageCache[docId] = null;
+          return null;
+        }
+
+        String cleanedString = encodedImage.replaceAll(RegExp(r'\s'), '');
+        while (cleanedString.length % 4 != 0) {
+          cleanedString += '=';
+        }
+
+        decoded = base64Decode(cleanedString);
+      }
+
+      _imageCache[docId] = decoded;
+      return decoded;
+    } catch (e) {
+      // Silently cache null for failed decodes
+      _imageCache[docId] = null;
       return null;
     }
   }
 
-  late int statusCode;
+  int _getStatusCode(String activity) {
+    if (activity.contains('Error')) {
+      return 0;
+    } else if (activity.contains('Success')) {
+      return 1;
+    } else {
+      return 2;
+    }
+  }
 
+  String _formatTimestamp(String? timeStamp) {
+    if (timeStamp == null || timeStamp == 'Unknown') {
+      return DateTime.now().toString();
+    }
+
+    try {
+      DateTime dateTime = DateTime.parse(timeStamp);
+      return dateTime.toString();
+    } catch (e) {
+      return DateTime.now().toString();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 90,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue, Colors.lightBlueAccent],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 90,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue, Colors.lightBlueAccent],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
             ),
           ),
-          leading: Builder(
-            builder:
-                (context) => IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                  },
-                ),
-          ),
-          title: const Text(
-            'Logs',
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          centerTitle: true,
         ),
-        body: SingleChildScrollView(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: _getLogsStream(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Error: ${snapshot.error}',
-                          style: const TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                );
-              }
-          
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Loading logs...'),
-                    ],
-                  ),
-                );
-              }
-          
-              final users = snapshot.data?.docs ?? [];
-          
-              if (users.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No logs found', style: TextStyle(fontSize: 18)),
-                    ],
-                  ),
-                );
-              }
-          
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: users.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    String activity = data['message '] as String? ?? 'Unknown';
-          
-                    // Calculate statusCode directly without setState
-                    int statusCode;
-                    if(activity.toString().contains('Error')){
-                      statusCode = 0;
-                    }else if(activity.toString().contains('Success')){
-                      statusCode = 1;
-                    } else {
-                      statusCode = -1; // or some default value
-                    }
-          
-                    String timeStamp = data['timestamp'] as String? ?? 'Unknown';
-                    if (timeStamp != 'Unknown') {
-                      try {
-                        DateTime dateTime = DateTime.parse(timeStamp);
-                        timeStamp = dateTime.toString();
-                      } catch (e) {
-                        timeStamp = 'Invalid date';
-                      }
-                    }
-                    final imageData = _decodeBase64Image(data['image']);
-                    if(imageData == null || imageData.isEmpty) {
-                      return ActivityLogCard(activity: activity, time: timeStamp, statusCode: statusCode);
-                    }else{
-                      return ActivityLogCard(activity: activity, time: timeStamp, statusCode: statusCode, imageData: imageData);
-                    }
-                  }).toList(),
-                ),
-              );
-            },
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
+        ),
+        title: Column(
+          children: [
+            const Text(
+              'Activity Logs',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (_allLogs.isNotEmpty)
+              Text(
+                '${_allLogs.length} logs',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+          ],
+        ),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: _allLogs.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+        onRefresh: _refreshLogs,
+        child: ListView.builder(
+          padding: const EdgeInsets.only(
+            top: 8,
+            bottom: 20,
+            left: 0,
+            right: 0,
+          ),
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: _allLogs.length + 1, // +1 for load more button
+          itemBuilder: (context, index) {
+            // Load more button at the end
+            if (index == _allLogs.length) {
+              return _buildLoadMoreButton();
+            }
+
+            final doc = _allLogs[index];
+            final data = doc.data() as Map<String, dynamic>;
+
+            final String activity = data['message '] as String? ?? 'Unknown Activity';
+            final int statusCode = _getStatusCode(activity);
+            final String timeStamp = _formatTimestamp(data['timestamp'] as String?);
+            final Uint8List? imageData = _decodeBase64Image(data['image'], doc.id);
+
+            return ActivityLogCard(
+              activity: activity,
+              time: timeStamp,
+              statusCode: statusCode,
+              imageData: imageData,
+            );
+          },
         ),
       ),
     );
+  }
+
+  Widget _buildLoadMoreButton() {
+    if (!_hasMoreData) {
+      return Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            const Divider(),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.grey[400], size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'All logs loaded',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: _isLoadingMore
+          ? Center(
+        child: Column(
+          children: [
+            const SizedBox(
+              height: 30,
+              width: 30,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Loading more logs...',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      )
+          : ElevatedButton.icon(
+        onPressed: _loadMoreLogs,
+        icon: const Icon(Icons.expand_more),
+        label: const Text('Load More Logs'),
+        style: ElevatedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.blue,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.history,
+              size: 64,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No Logs Found',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Activity logs will appear here',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _refreshLogs,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _imageCache.clear();
+    super.dispose();
   }
 }
