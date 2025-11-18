@@ -33,6 +33,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   bool showSuccessAnimation = false; // Flag for success animation
   bool showFailureAnimation = false; // Flag for failure animation
   bool _didChangeDependenciesRun = false;
+  bool _isSkipped = false; // Flag to track if user skipped the check
+  bool _isCancelled = false; // Flag to cancel ongoing check
 
   AnimationController? _animationController;
   Animation<double>? _scaleAnimation;
@@ -64,11 +66,19 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       isCheckingWifi = true;
       showSuccessAnimation = false;
       showFailureAnimation = false;
+      _isCancelled = false;
     });
 
     try {
       // Get current wifi_state value
       DataSnapshot snapshot = await wifiState.get();
+
+      // Check if operation was cancelled
+      if (_isCancelled || _isSkipped) {
+        print('WiFi check cancelled by user');
+        return;
+      }
+
       bool currentWifiState = snapshot.value as bool? ?? false;
 
       print('Current WiFi state: $currentWifiState');
@@ -84,6 +94,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       DateTime startTime = DateTime.now();
 
       while (DateTime.now().difference(startTime).inSeconds < 5) {
+        // Check if operation was cancelled
+        if (_isCancelled || _isSkipped) {
+          print('WiFi check cancelled by user during polling');
+          return;
+        }
+
         await Future.delayed(const Duration(milliseconds: 500));
         DataSnapshot checkSnapshot = await wifiState.get();
         bool currentState = checkSnapshot.value as bool? ?? false;
@@ -95,6 +111,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
         }
       }
 
+      // Check again before proceeding
+      if (_isCancelled || _isSkipped) {
+        print('WiFi check cancelled before final steps');
+        return;
+      }
+
       // Update the provider with the final state
       loaderProvider.setWifiState(wifiConnected);
 
@@ -102,7 +124,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
         print('WiFi check timeout - Device did not respond');
 
         // Show failure animation before redirecting
-        if (mounted) {
+        if (mounted && !_isCancelled && !_isSkipped) {
           setState(() {
             showFailureAnimation = true;
           });
@@ -114,18 +136,49 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
           // Navigate without setting isCheckingWifi to false
           // This keeps the splash screen visible during navigation
-          if (mounted) {
+          if (mounted && !_isCancelled && !_isSkipped) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => const WifiDisconnectedScreen(),
+                builder: (context) => WifiDisconnectedScreen(
+                  onRetry: () {
+                    // Return to landing screen and retry
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LandingScreen(),
+                      ),
+                    );
+                  },
+                  onSkip: () {
+                    // Skip and go to main screen
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LandingScreen(),
+                      ),
+                    ).then((_) {
+                      // Use a post-frame callback to ensure the widget is built
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            _isSkipped = true;
+                            isCheckingWifi = false;
+                            showSuccessAnimation = false;
+                            showFailureAnimation = false;
+                          });
+                        }
+                      });
+                    });
+                  },
+                ),
               ),
             );
           }
         }
       } else {
         // Show success animation before proceeding to main screen
-        if (mounted) {
+        if (mounted && !_isCancelled && !_isSkipped) {
           setState(() {
             showSuccessAnimation = true;
           });
@@ -135,7 +188,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           // Wait for animation to complete + a little extra time
           await Future.delayed(const Duration(milliseconds: 1500));
 
-          if (mounted) {
+          if (mounted && !_isCancelled && !_isSkipped) {
             setState(() {
               isCheckingWifi = false;
               showSuccessAnimation = false;
@@ -145,10 +198,17 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       }
     } catch (e) {
       print('Error occurred in checking wifi state - $e');
+
+      // Check if operation was cancelled
+      if (_isCancelled || _isSkipped) {
+        print('WiFi check cancelled during error handling');
+        return;
+      }
+
       loaderProvider.setWifiState(false);
 
       // Show failure animation on error
-      if (mounted) {
+      if (mounted && !_isCancelled && !_isSkipped) {
         setState(() {
           showFailureAnimation = true;
         });
@@ -158,11 +218,42 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
         await Future.delayed(const Duration(milliseconds: 1500));
 
         // Navigate without setting isCheckingWifi to false
-        if (mounted) {
+        if (mounted && !_isCancelled && !_isSkipped) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const WifiDisconnectedScreen(),
+              builder: (context) => WifiDisconnectedScreen(
+                onRetry: () {
+                  // Return to landing screen and retry
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LandingScreen(),
+                    ),
+                  );
+                },
+                onSkip: () {
+                  // Skip and go to main screen
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LandingScreen(),
+                    ),
+                  ).then((_) {
+                    // Use a post-frame callback to ensure the widget is built
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _isSkipped = true;
+                          isCheckingWifi = false;
+                          showSuccessAnimation = false;
+                          showFailureAnimation = false;
+                        });
+                      }
+                    });
+                  });
+                },
+              ),
             ),
           );
         }
@@ -173,6 +264,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   // Method to skip WiFi check and go directly to main screen
   void _skipWifiCheck() {
     setState(() {
+      _isSkipped = true;
+      _isCancelled = true;
       isCheckingWifi = false;
       showSuccessAnimation = false;
       showFailureAnimation = false;
@@ -188,7 +281,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_didChangeDependenciesRun) {
+    // Only run if not already run and not skipped
+    if (!_didChangeDependenciesRun && !_isSkipped) {
       checkWifiConnection();
       _didChangeDependenciesRun = true;
     }

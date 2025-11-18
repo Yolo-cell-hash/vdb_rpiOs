@@ -14,6 +14,7 @@ class LoaderProvider with ChangeNotifier {
   String? _selectedUserId;
   String _phoneNumber = '';
   String _accessToekn = '';
+  String _refreshToken = '';
   String _lockID = '';
 
   dynamic _otp ;
@@ -31,6 +32,7 @@ class LoaderProvider with ChangeNotifier {
   String? get selectedUserId => _selectedUserId;
   String get phoneNumber => _phoneNumber;
   String get accessToken => _accessToekn;
+  String get refreshToken => _refreshToken;
   String get lockID => _lockID;
 
   dynamic get otp => _otp;
@@ -112,4 +114,11 @@ class LoaderProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  set refreshToken(String newValue) {
+    _refreshToken = newValue;
+    notifyListeners();
+  }
 }
+
+
+

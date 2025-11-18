@@ -58,7 +58,7 @@ class WebApi {
         Provider.of<LoaderProvider>(context, listen: false).phoneNumber;
     loaderProvider.showLoader();
     Map<String, dynamic> requestBody = {
-      'countryCode': '+91', // Dummy country code
+      'countryCode': '+91',
       'phoneNumber': phoneNumber,
       'otp': otp,
     };
@@ -77,12 +77,18 @@ class WebApi {
 
       loaderProvider.hideLoader();
       if (response.statusCode == 200) {
+        print('Response is - $response');
         Map<String, dynamic> responseData = jsonDecode(response.body);
         String? extractedAccessToken = responseData['accessToken'];
+        String? extractedRefreshToken = responseData['refreshToken'];
 
-        if (extractedAccessToken != null) {
+        if (extractedAccessToken != null && extractedRefreshToken!=null) {
           Provider.of<LoaderProvider>(context, listen: false).accessToken =
               extractedAccessToken;
+
+          Provider.of<LoaderProvider>(context, listen: false).refreshToken =
+              extractedRefreshToken;
+
           try {
             FirebaseDatabase database = FirebaseDatabase.instanceFor(
               app: Firebase.app(),
@@ -92,6 +98,12 @@ class WebApi {
             DatabaseReference tokenRef = database.ref("dev_env/accessToken");
 
             await tokenRef.set(extractedAccessToken);
+
+            DatabaseReference refreshToken = database.ref("dev_env/refresh_token");
+
+            await refreshToken.set(extractedRefreshToken);
+
+
             print(
               'Access Token successfully stored in Firebase at /updates/accessToken',
             );
