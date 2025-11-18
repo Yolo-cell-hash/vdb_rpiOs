@@ -55,7 +55,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
         curve: Curves.elasticOut,
       ),
     );
+
+    // Check and refresh access token if needed
   }
+
+  // Check if access token exists, if not use refresh token to get new one
+
 
   Future<void> checkWifiConnection() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);

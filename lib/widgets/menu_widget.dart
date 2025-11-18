@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:flutter/services.dart';
+import 'package:vdp_poc_new/screens/onboarding_screen.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
+import 'package:vdp_poc_new/utils/web_api_brain.dart';
 
 class MenuWidget extends StatefulWidget {
   const MenuWidget({super.key});
@@ -85,14 +87,20 @@ class _MenuWidgetState extends State<MenuWidget> {
               ),
             ),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
-              child: Card(
-                child: Container(
-                  padding: const EdgeInsets.all(15.0),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [Icon(Icons.logout), Text('  Logout')],
+            GestureDetector(
+              onTap: ()async{
+                await WebApi.clearTokensFromPreferences();
+                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const OnboardingScreen()), (route) => false);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                child: Card(
+                  child: Container(
+                    padding: const EdgeInsets.all(15.0),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [Icon(Icons.logout), Text('  Logout')],
+                    ),
                   ),
                 ),
               ),
