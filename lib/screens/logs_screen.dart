@@ -20,6 +20,7 @@ class _LogsScreenState extends State<LogsScreen> {
   DocumentSnapshot? _lastDocument;
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
+  bool _isInitialLoading = true; // Add this flag
 
   @override
   void initState() {
@@ -28,6 +29,10 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   Future<void> _loadInitialLogs() async {
+    setState(() {
+      _isInitialLoading = true;
+    });
+
     try {
       final querySnapshot = await _firestore
           .collection('logs')
@@ -45,9 +50,13 @@ class _LogsScreenState extends State<LogsScreen> {
         }
 
         _hasMoreData = querySnapshot.docs.length == _logsPerPage;
+        _isInitialLoading = false; // Set to false after loading
       });
     } catch (e) {
       print('Error loading initial logs: $e');
+      setState(() {
+        _isInitialLoading = false; // Set to false even on error
+      });
     }
   }
 
@@ -209,7 +218,9 @@ class _LogsScreenState extends State<LogsScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: _allLogs.isEmpty
+      body: _isInitialLoading // Check initial loading state
+          ? _buildLoadingState() // Show loading indicator
+          : _allLogs.isEmpty
           ? _buildEmptyState()
           : RefreshIndicator(
         onRefresh: _refreshLogs,
@@ -231,10 +242,13 @@ class _LogsScreenState extends State<LogsScreen> {
             final doc = _allLogs[index];
             final data = doc.data() as Map<String, dynamic>;
 
-            final String activity = data['message '] as String? ?? 'Unknown Activity';
+            final String activity =
+                data['message '] as String? ?? 'Unknown Activity';
             final int statusCode = _getStatusCode(activity);
-            final String timeStamp = _formatTimestamp(data['timestamp'] as String?);
-            final Uint8List? imageData = _decodeBase64Image(data['image'], doc.id);
+            final String timeStamp =
+            _formatTimestamp(data['timestamp'] as String?);
+            final Uint8List? imageData =
+            _decodeBase64Image(data['image'], doc.id);
 
             return ActivityLogCard(
               activity: activity,
@@ -244,6 +258,30 @@ class _LogsScreenState extends State<LogsScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            height: 50,
+            width: 50,
+            child: CircularProgressIndicator(strokeWidth: 4, color: Colors.blueAccent,),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Loading logs...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -259,7 +297,8 @@ class _LogsScreenState extends State<LogsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline, color: Colors.grey[400], size: 20),
+                Icon(Icons.check_circle_outline,
+                    color: Colors.grey[400], size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'All logs loaded',
@@ -305,7 +344,8 @@ class _LogsScreenState extends State<LogsScreen> {
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.white,
           backgroundColor: Colors.blue,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

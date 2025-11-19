@@ -10,7 +10,6 @@ import 'package:vdp_poc_new/screens/wifi_disconnected_screen.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/utils/web_api_brain.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -71,7 +70,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       print('Access token missing, attempting to refresh...');
       await WebApi().useRefreshTokenToGetAccessToken(context);
     } else if (loaderProvider.refreshToken.isEmpty) {
-      // No refresh token - user needs to login
       print('No refresh token - logging out');
       await WebApi.logoutUser(context);
     }
@@ -90,10 +88,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     });
 
     try {
-      // Get current wifi_state value
       DataSnapshot snapshot = await wifiState.get();
 
-      // Check if operation was cancelled
       if (_isCancelled || _isSkipped) {
         print('WiFi check cancelled by user');
         return;
@@ -103,18 +99,15 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
       print('Current WiFi state: $currentWifiState');
 
-      // If it's true, set it to false
       if (currentWifiState) {
         await wifiState.set(false);
         print('WiFi state set to false, waiting for device response...');
       }
 
-      // Wait for up to 5 seconds for it to change back to true
       bool wifiConnected = false;
       DateTime startTime = DateTime.now();
 
       while (DateTime.now().difference(startTime).inSeconds < 5) {
-        // Check if operation was cancelled
         if (_isCancelled || _isSkipped) {
           print('WiFi check cancelled by user during polling');
           return;
@@ -131,19 +124,16 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
         }
       }
 
-      // Check again before proceeding
       if (_isCancelled || _isSkipped) {
         print('WiFi check cancelled before final steps');
         return;
       }
 
-      // Update the provider with the final state
       loaderProvider.setWifiState(wifiConnected);
 
       if (!wifiConnected) {
         print('WiFi check timeout - Device did not respond');
 
-        // Show failure animation before redirecting
         if (mounted && !_isCancelled && !_isSkipped) {
           setState(() {
             showFailureAnimation = true;
@@ -151,18 +141,14 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
           _animationController!.forward();
 
-          // Wait for animation to complete
           await Future.delayed(const Duration(milliseconds: 1500));
 
-          // Navigate without setting isCheckingWifi to false
-          // This keeps the splash screen visible during navigation
           if (mounted && !_isCancelled && !_isSkipped) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => WifiDisconnectedScreen(
                   onRetry: () {
-                    // Return to landing screen and retry
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -171,14 +157,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     );
                   },
                   onSkip: () {
-                    // Skip and go to main screen
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const LandingScreen(),
                       ),
                     ).then((_) {
-                      // Use a post-frame callback to ensure the widget is built
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (mounted) {
                           setState(() {
@@ -197,15 +181,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           }
         }
       } else {
-        // Show success animation before proceeding to main screen
         if (mounted && !_isCancelled && !_isSkipped) {
           setState(() {
             showSuccessAnimation = true;
           });
 
           _animationController!.forward();
-
-          // Wait for animation to complete + a little extra time
           await Future.delayed(const Duration(milliseconds: 1500));
 
           if (mounted && !_isCancelled && !_isSkipped) {
@@ -218,16 +199,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       }
     } catch (e) {
       print('Error occurred in checking wifi state - $e');
-
-      // Check if operation was cancelled
       if (_isCancelled || _isSkipped) {
         print('WiFi check cancelled during error handling');
         return;
       }
 
       loaderProvider.setWifiState(false);
-
-      // Show failure animation on error
       if (mounted && !_isCancelled && !_isSkipped) {
         setState(() {
           showFailureAnimation = true;
@@ -236,15 +213,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
         _animationController!.forward();
 
         await Future.delayed(const Duration(milliseconds: 1500));
-
-        // Navigate without setting isCheckingWifi to false
         if (mounted && !_isCancelled && !_isSkipped) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => WifiDisconnectedScreen(
                 onRetry: () {
-                  // Return to landing screen and retry
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -253,14 +227,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                   );
                 },
                 onSkip: () {
-                  // Skip and go to main screen
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const LandingScreen(),
                     ),
                   ).then((_) {
-                    // Use a post-frame callback to ensure the widget is built
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
                         setState(() {
@@ -281,7 +253,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     }
   }
 
-  // Method to skip WiFi check and go directly to main screen
   void _skipWifiCheck() {
     setState(() {
       _isSkipped = true;
@@ -301,14 +272,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only run if not already run and not skipped
     if (!_didChangeDependenciesRun && !_isSkipped) {
       checkWifiConnection();
       _didChangeDependenciesRun = true;
     }
   }
 
-  // Build the WiFi checking splash screen
   Widget _buildWifiCheckingScreen() {
     return Container(
       decoration: const BoxDecoration(
@@ -330,7 +299,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                   height: 120,
                 ),
                 const SizedBox(height: 50),
-                // Show loading indicator, success checkmark, or failure icon
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
                   transitionBuilder: (Widget child, Animation<double> animation) {
@@ -436,7 +404,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               ],
             ),
           ),
-          // Skip button positioned at the top-right
           Positioned(
             top: 40,
             right: 20,
@@ -485,7 +452,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    // Show loading screen while checking WiFi
     if (isCheckingWifi) {
       return SafeArea(
         child: Scaffold(
@@ -494,7 +460,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       );
     }
 
-    // Show main app once WiFi check is complete
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
