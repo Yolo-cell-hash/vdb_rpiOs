@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:quickalert/quickalert.dart';
 import 'package:flutter/services.dart';
 import 'package:vdp_poc_new/screens/onboarding_screen.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';

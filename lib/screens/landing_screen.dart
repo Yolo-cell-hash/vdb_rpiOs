@@ -9,6 +9,8 @@ import 'package:vdp_poc_new/screens/settings_screen.dart';
 import 'package:vdp_poc_new/screens/wifi_disconnected_screen.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
+import 'package:vdp_poc_new/utils/web_api_brain.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -56,11 +58,24 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       ),
     );
 
-    // Check and refresh access token if needed
+    // Check token validity and refresh if needed
+    _checkTokenValidity();
   }
 
-  // Check if access token exists, if not use refresh token to get new one
+  // Check if tokens are valid and refresh if needed
+  Future<void> _checkTokenValidity() async {
+    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
 
+    // Check if access token exists
+    if (loaderProvider.accessToken.isEmpty && loaderProvider.refreshToken.isNotEmpty) {
+      print('Access token missing, attempting to refresh...');
+      await WebApi().useRefreshTokenToGetAccessToken(context);
+    } else if (loaderProvider.refreshToken.isEmpty) {
+      // No refresh token - user needs to login
+      print('No refresh token - logging out');
+      await WebApi.logoutUser(context);
+    }
+  }
 
   Future<void> checkWifiConnection() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);

@@ -7,7 +7,7 @@ import 'package:vdp_poc_new/screens/connected_screen.dart';
 import 'package:vdp_poc_new/screens/landing_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
-import '../utils/web_api_brain.dart';
+import 'package:vdp_poc_new/utils/web_api_brain.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,33 +28,40 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     // Load tokens from shared preferences
-    final tokens = await WebApi.loadTokensFromPreferences();
-    final accessToken = tokens['accessToken'];
-    final refreshToken = tokens['refreshToken'];
+    final tokenData = await WebApi.loadTokensFromPreferences();
+    final accessToken = tokenData['accessToken'];
+    final refreshToken = tokenData['refreshToken'];
+    final refreshTokenExpired = tokenData['refreshTokenExpired'] ?? false;
+    final accessTokenExpired = tokenData['accessTokenExpired'] ?? false;
 
     if (!mounted) return;
 
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
 
-    // Check if we have tokens
-    if (refreshToken != null) {
+    // Check if refresh token expired
+    if (refreshTokenExpired) {
+      print('Refresh token expired - redirecting to onboarding');
+      setState(() {
+        _nextScreen = OnboardingScreen();
+        _isInitialized = true;
+      });
+      return;
+    }
+
+    // Check if we have a valid refresh token
+    if (refreshToken != null && refreshToken.isNotEmpty) {
       // User was previously logged in
       loaderProvider.refreshToken = refreshToken;
+      print('Refresh token loaded from shared preferences');
 
-      if (accessToken != null) {
+      if (accessToken != null && accessToken.isNotEmpty) {
         // Access token is still valid (less than 24 hours)
         loaderProvider.accessToken = accessToken;
-
-        _checkAndRefreshToken();
-
-        print('Access token loaded from shared preferences & refreshed');
-
-
-
+        print('Access token loaded from shared preferences (valid)');
       } else {
-        // Access token expired, will need to refresh
-        print('Access token expired, will need to refresh');
-        // You can automatically refresh the token here if you want
+        // Access token expired or missing, will need to refresh
+        print('Access token expired or missing - will refresh automatically');
+        // The landing screen will handle the refresh automatically
       }
 
       setState(() {
@@ -62,20 +69,12 @@ class _SplashScreenState extends State<SplashScreen> {
         _isInitialized = true;
       });
     } else {
-      // No tokens found, user needs to login
+      // No valid tokens found, user needs to login
+      print('No valid tokens found - redirecting to onboarding');
       setState(() {
         _nextScreen = OnboardingScreen();
         _isInitialized = true;
       });
-    }
-  }
-
-
-  Future<void> _checkAndRefreshToken() async {
-    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
-
-    if (loaderProvider.refreshToken.isNotEmpty) {
-      await WebApi().useRefreshTokenToGetAccessToken(context);
     }
   }
 
@@ -92,10 +91,27 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
         child: Center(
-          child: SvgPicture.asset(
-            'images/gnb_new_logo_.svg',
-            color: Colors.white,
-            height: 100,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SvgPicture.asset(
+                'images/gnb_new_logo_.svg',
+                color: Colors.white,
+                height: 100,
+              ),
+              const SizedBox(height: 30),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Initializing...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
           ),
         ),
       );
