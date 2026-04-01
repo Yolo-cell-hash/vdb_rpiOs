@@ -7,6 +7,8 @@ import 'dart:typed_data';
 import 'package:vdp_poc_new/utils/janus_webrtc_client.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
+import '../utils/firebase_core_utils.dart';
+import '../utils/loader_provider.dart';
 
 class VerifyUserWidget extends StatefulWidget {
   const VerifyUserWidget({super.key});
@@ -27,7 +29,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
   RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
 
   void _watchStream() async {
-    final streamId = 11;
+    final streamId = 7;
     await _client.watchStream(streamId);
     print(
       'Wacth Stream Called ---------------------------------------------------------------',
@@ -69,12 +71,12 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
       loaderProvider.showLoader();
       try {
         FirebaseDatabase database = fbUtils.database;
-        DatabaseReference verifyUser = database.ref('/dev_env/verifyUsers');
+        DatabaseReference verifyUser = database.ref('/dev_env/sendFeed');
         await verifyUser.set(true);
 
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
 
-        _client = JanusWebRTCClient('ws://[$ip]:8188');
+        _client = JanusWebRTCClient('ws://$ip:8188');
         await connectOnPageInit();
         _client.messages.listen((message) {
           setState(() {
@@ -109,7 +111,26 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FirebaseDatabase database = fbUtils.database;
 
-    return Column(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) async {
+        final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+        if (didPop) {
+          loaderProvider.showLoader();
+          await _client.disconnect();
+          DatabaseReference userResponseFieldRef = database.ref(
+            '/dev_env/sendFeed',
+          );
+          try {
+            await userResponseFieldRef.set(false);
+            loaderProvider.hideLoader();
+          } catch (e) {
+            print('Error updating user response to false: $e');
+            loaderProvider.hideLoader();
+          }
+        }
+
+      },
+      child: Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -141,10 +162,17 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
               loaderProvider.showLoader();
 
               try{
-                DatabaseReference confirm = database.ref('/dev_env/confirm');
-                await confirm.set(true);
-                DatabaseReference feed = database.ref('/dev_env/sendFeed');
-                await feed.set(false);
+                //stop the stream first
+                DatabaseReference sendFeed = database.ref('/dev_en   v/sendFeed');
+                await sendFeed.set(false);
+
+                DatabaseReference feed = database.ref('/dev_env/verifyUsers');
+                await feed.set(true);
+                //
+                DatabaseReference confirmClick = database.ref('/dev_env/confirm');
+                await confirmClick.set(true);
+
+
 
                 DatabaseReference ack = database.ref(
                   '/dev_env/ack',
@@ -214,6 +242,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
             ),
           )
       ],
+    ),
     );
   }
 }

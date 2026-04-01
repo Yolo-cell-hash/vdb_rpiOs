@@ -108,7 +108,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
   }
 
   void _startStream() async {
-    final streamId = 1;
+    final streamId = 7;
     if (streamId != null) {
       await _client.startStream(streamId);
     }
@@ -140,23 +140,35 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
           _client = JanusWebRTCClient('ws://[$ip]:8188');
           await connectOnPageInit();
           _client.messages.listen((message) {
-            setState(() {
-              _status = message;
-            });
+            if (mounted) {
+              setState(() {
+                _status = message;
+              });
+            }
           });
           _client.remoteStream.listen((stream) {
-            _remoteRenderer.srcObject = stream;
+            if (mounted) {
+              setState(() {
+                _remoteRenderer.srcObject = stream;
+              });
+            }
           });
         } else if(ipType == "IPv4"){
           _client = JanusWebRTCClient('ws://$ip:8188');
           await connectOnPageInit();
           _client.messages.listen((message) {
-            setState(() {
-              _status = message;
-            });
+            if (mounted) {
+              setState(() {
+                _status = message;
+              });
+            }
           });
           _client.remoteStream.listen((stream) {
-            _remoteRenderer.srcObject = stream;
+            if (mounted) {
+              setState(() {
+                _remoteRenderer.srcObject = stream;
+              });
+            }
           });
         } else {
           QuickAlert.show(
@@ -233,23 +245,23 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                 leading: Builder(
                   builder:
                       (context) => IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await _client.disconnect();
-                          DatabaseReference userResponseFieldRef = database.ref(
-                            '/dev_env/sendFeed',
-                          );
-                          try {
-                            await userResponseFieldRef.set(false);
-                            print(
-                              'User response updated to true in Firebase at /dev_env/userResponse',
-                            );
-                          } catch (e) {
-                            print('Error updating user response to true: $e');
-                          }
-                        },
-                      ),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _client.disconnect();
+                      DatabaseReference userResponseFieldRef = database.ref(
+                        '/dev_env/sendFeed',
+                      );
+                      try {
+                        await userResponseFieldRef.set(false);
+                        print(
+                          'User response updated to true in Firebase at /dev_env/userResponse',
+                        );
+                      } catch (e) {
+                        print('Error updating user response to true: $e');
+                      }
+                    },
+                  ),
                 ),
                 title: const Text(
                   'Live Feed',
@@ -293,7 +305,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                     type: QuickAlertType.confirm,
                                     title: 'Alert',
                                     text:
-                                        'Do you want to view the stream on $ip ?',
+                                    'Do you want to view the stream on $ip ?',
                                     confirmBtnColor: Colors.green,
                                     confirmBtnText: 'Yes',
                                     cancelBtnText: 'No',
@@ -302,7 +314,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       _watchStream();
 
                                       DatabaseReference userResponseFieldRef =
-                                          database.ref('/dev_env/sendFeed');
+                                      database.ref('/dev_env/sendFeed');
                                       try {
                                         await userResponseFieldRef.set(true);
                                         print(
@@ -320,7 +332,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                     onCancelBtnTap: () async {
                                       Navigator.pop(context);
                                       DatabaseReference userResponseFieldRef =
-                                          database.ref('/dev_env/sendFeed');
+                                      database.ref('/dev_env/sendFeed');
 
                                       try {
                                         await userResponseFieldRef.set(true);
@@ -379,7 +391,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       _hideControlsTimer?.cancel();
                                       _hideControlsTimer = Timer(
                                         Duration(milliseconds: 2500),
-                                        () {
+                                            () {
                                           if (mounted) {
                                             setState(() {
                                               _showControls = false;
@@ -395,8 +407,8 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       _remoteRenderer,
                                       filterQuality: FilterQuality.high,
                                       objectFit:
-                                          RTCVideoViewObjectFit
-                                              .RTCVideoViewObjectFitCover,
+                                      RTCVideoViewObjectFit
+                                          .RTCVideoViewObjectFitCover,
                                       mirror: false,
                                     ),
                                   ),
@@ -475,8 +487,8 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                             MaterialPageRoute(
                                               builder:
                                                   (_) => FullScreenVideoView(
-                                                    renderer: _remoteRenderer,
-                                                  ),
+                                                renderer: _remoteRenderer,
+                                              ),
                                             ),
                                           );
                                         },
@@ -525,7 +537,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                               try {
                                 // Create a key to identify the video widget
                                 final GlobalKey repaintBoundaryKey =
-                                    GlobalKey();
+                                GlobalKey();
 
                                 setState(() {
                                   _repaintBoundaryKey = repaintBoundaryKey;
@@ -536,9 +548,9 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
 
                                 // Capture the video frame
                                 RenderRepaintBoundary boundary =
-                                    repaintBoundaryKey.currentContext!
-                                            .findRenderObject()
-                                        as RenderRepaintBoundary;
+                                repaintBoundaryKey.currentContext!
+                                    .findRenderObject()
+                                as RenderRepaintBoundary;
                                 ui.Image image = await boundary.toImage(
                                   pixelRatio: 3.0,
                                 );
@@ -546,16 +558,16 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                   format: ui.ImageByteFormat.png,
                                 );
                                 Uint8List imageBytes =
-                                    byteData!.buffer.asUint8List();
+                                byteData!.buffer.asUint8List();
 
                                 // Save to gallery
                                 final result =
-                                    await ImageGallerySaverPlus.saveImage(
-                                      imageBytes,
-                                      quality: 100,
-                                      name:
-                                          'door_capture_${DateTime.now().millisecondsSinceEpoch}',
-                                    );
+                                await ImageGallerySaverPlus.saveImage(
+                                  imageBytes,
+                                  quality: 100,
+                                  name:
+                                  'door_capture_${DateTime.now().millisecondsSinceEpoch}',
+                                );
 
                                 // Show success message
                                 if (result != null && result['isSuccess']) {
@@ -583,9 +595,9 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                           HomeScreenFuncButton(
                             btnLabel: _isRecording ? 'Stop' : 'Record',
                             iconData:
-                                _isRecording
-                                    ? Icons.stop
-                                    : Icons.emergency_recording,
+                            _isRecording
+                                ? Icons.stop
+                                : Icons.emergency_recording,
                             callBack: () async {
                               if (_isRecording) {
                                 // Stop recording
@@ -594,11 +606,11 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
 
                                   await _mediaRecorder?.stop();
                                   final result =
-                                      await ImageGallerySaverPlus.saveFile(
-                                        _recordedFilePath!,
-                                        name:
-                                            'door_recording_${DateTime.now().millisecondsSinceEpoch}',
-                                      );
+                                  await ImageGallerySaverPlus.saveFile(
+                                    _recordedFilePath!,
+                                    name:
+                                    'door_recording_${DateTime.now().millisecondsSinceEpoch}',
+                                  );
 
                                   if (result != null && result['isSuccess']) {
                                     QuickAlert.show(
@@ -637,7 +649,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
 
                                   // Create temp file for recording
                                   Directory tempDir =
-                                      await getTemporaryDirectory();
+                                  await getTemporaryDirectory();
                                   String tempPath =
                                       '${tempDir.path}/temp_recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
                                   _recordedFilePath = tempPath;
@@ -662,7 +674,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
 
                                   _recordingTimer = Timer.periodic(
                                     Duration(seconds: 1),
-                                    (timer) {
+                                        (timer) {
                                       setState(() {
                                         _recordingDuration++;
                                       });

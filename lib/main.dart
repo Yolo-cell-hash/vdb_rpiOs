@@ -69,7 +69,6 @@ void handleNotificationResponse(NotificationResponse response) {
   final payload = response.payload ?? '';
   final notifId = response.id ?? 0;
 
-  // Only the default tap exists (no action buttons)
   if (payload.contains('route=connected')) {
     _navigateToConnected();
   } else if (payload.contains('route=stream')) {

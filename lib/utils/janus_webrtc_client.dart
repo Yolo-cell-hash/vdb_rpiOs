@@ -11,7 +11,7 @@ class JanusWebRTCClient {
   MediaStream? _remoteStream;
 
   final String _janusUrl;
-  final StreamController<String> _messageController = StreamController<String>.broadcast();
+  final StreamController<String> _messageController = StreamController<String>. broadcast();
   final StreamController<MediaStream> _remoteStreamController = StreamController<MediaStream>.broadcast();
   final StreamController<RTCIceConnectionState> _iceStateController = StreamController<RTCIceConnectionState>.broadcast();
   final StreamController<RTCPeerConnectionState> _connectionStateController = StreamController<RTCPeerConnectionState>.broadcast();
@@ -27,7 +27,7 @@ class JanusWebRTCClient {
   // Public streams
   Stream<String> get messages => _messageController.stream;
   Stream<MediaStream> get remoteStream => _remoteStreamController.stream;
-  Stream<RTCIceConnectionState> get iceConnectionState => _iceStateController.stream;
+  Stream<RTCIceConnectionState> get iceConnectionState => _iceStateController. stream;
   Stream<RTCPeerConnectionState> get connectionState => _connectionStateController.stream;
 
   // Public getters
@@ -51,9 +51,9 @@ class JanusWebRTCClient {
       print('✅ Connected to Janus WebSocket');
 
       // Listen to incoming messages
-      _channel!.stream.listen(
+      _channel! .stream.listen(
         _handleWebSocketMessage,
-        onError: (error) {
+        onError:  (error) {
           print('❌ WebSocket error: $error');
           _messageController.add('Connection error: $error');
           _isConnected = false;
@@ -86,7 +86,7 @@ class JanusWebRTCClient {
   void _handleWebSocketMessage(dynamic message) {
     try {
       final data = jsonDecode(message);
-      print('📩 Received: $data');
+      print('📩 Received:  $data');
 
       final janusEvent = data['janus'];
 
@@ -107,7 +107,7 @@ class JanusWebRTCClient {
       if (data['transaction'] != null) {
         final transactionId = data['transaction'];
         if (_transactions.containsKey(transactionId)) {
-          if (!_transactions[transactionId]!.isCompleted) {
+          if (! _transactions[transactionId]! .isCompleted) {
             _transactions[transactionId]!.complete(data);
           }
           _transactions.remove(transactionId);
@@ -135,7 +135,7 @@ class JanusWebRTCClient {
         case 'slowlink':
           final uplink = data['uplink'] ?? false;
           final lost = data['lost'] ?? 0;
-          print('⚠️ Slow link detected (${uplink ? 'uplink' : 'downlink'}): $lost packets lost');
+          print('⚠️ Slow link detected (${uplink ? 'uplink' :  'downlink'}): $lost packets lost');
           _messageController.add('Network quality degraded');
           break;
 
@@ -152,7 +152,7 @@ class JanusWebRTCClient {
 
         case 'timeout':
           print('⏱️ Session timeout');
-          _messageController.add('Session timeout');
+          _messageController. add('Session timeout');
           _isConnected = false;
           break;
 
@@ -180,7 +180,7 @@ class JanusWebRTCClient {
       final plugin = pluginData['plugin'];
       final eventData = pluginData['data'];
 
-      if (plugin == 'janus.plugin.streaming') {
+      if (plugin == 'janus.plugin.streaming') {  // ✅ FIXED:  Removed extra space
         _handleStreamingEvent(eventData);
       }
     }
@@ -200,7 +200,7 @@ class JanusWebRTCClient {
 
       switch (status) {
         case 'starting':
-          _messageController.add('Stream starting...');
+          _messageController.add('Stream starting.. .');
           print('▶️ Stream starting...');
           break;
         case 'started':
@@ -224,7 +224,7 @@ class JanusWebRTCClient {
           print('⏸️ Pausing stream...');
           break;
         case 'resuming':
-          _messageController.add('Resuming stream...');
+          _messageController. add('Resuming stream...');
           print('▶️ Resuming stream...');
           break;
       }
@@ -248,7 +248,7 @@ class JanusWebRTCClient {
       if (info != null) {
         final description = info['description'] ?? 'Unknown';
         _messageController.add('Stream info: $description');
-        print('ℹ️ Stream info: $info');
+        print('ℹ️ Stream info:  $info');
       }
     }
 
@@ -310,7 +310,7 @@ class JanusWebRTCClient {
   /// Add remote ICE candidate from Janus
   Future<void> _addRemoteIceCandidate(Map<String, dynamic> candidate) async {
     if (_peerConnection == null) {
-      print('⚠️ Cannot add remote candidate: PeerConnection not ready');
+      print('⚠️ Cannot add remote candidate:  PeerConnection not ready');
       return;
     }
 
@@ -322,7 +322,7 @@ class JanusWebRTCClient {
           candidate['sdpMLineIndex'],
         ),
       );
-      print('✅ Added remote ICE candidate: ${candidate['candidate']}');
+      print('✅ Added remote ICE candidate:  ${candidate['candidate']}');
     } catch (e) {
       print('❌ Error adding remote ICE candidate: $e');
     }
@@ -332,23 +332,23 @@ class JanusWebRTCClient {
   Future<void> _createSession() async {
     final transaction = _generateTransaction();
     final message = {
-      'janus': 'create',
+      'janus':  'create',
       'transaction': transaction,
     };
 
     final completer = Completer<Map<String, dynamic>>();
     _transactions[transaction] = completer;
 
-    _channel!.sink.add(jsonEncode(message));
+    _channel! .sink.add(jsonEncode(message));
 
-    final response = await completer.future.timeout(
+    final response = await completer.future. timeout(
       Duration(seconds: 10),
       onTimeout: () => throw TimeoutException('Session creation timeout'),
     );
 
     if (response['janus'] == 'success') {
       _sessionId = response['data']['id'];
-      print('✅ Session created: $_sessionId');
+      print('✅ Session created:  $_sessionId');
       _messageController.add('Session created: $_sessionId');
     } else {
       final error = response['error'] ?? 'Unknown error';
@@ -356,50 +356,58 @@ class JanusWebRTCClient {
     }
   }
 
-  /// Attach to streaming plugin
-  Future<void> attachToStreamingPlugin() async {
+  Future<bool> attachToStreamingPlugin() async {
     if (_sessionId == 0) {
-      throw Exception('No active session. Call connect() first.');
+      print('❌ No active session.   Call connect() first.');
+      return false;
     }
 
-    final transaction = _generateTransaction();
-    final message = {
-      'janus': 'attach',
-      'session_id': _sessionId,
-      'plugin': 'janus.plugin.streaming',
-      'transaction': transaction,
-    };
+    try {
+      final transaction = _generateTransaction();
+      final message = {
+        'janus':  'attach',
+        'session_id': _sessionId,
+        'plugin': 'janus.plugin.streaming',  // ✅ FIXED:  Removed extra space
+        'transaction': transaction,
+      };
 
-    final completer = Completer<Map<String, dynamic>>();
-    _transactions[transaction] = completer;
+      final completer = Completer<Map<String, dynamic>>();
+      _transactions[transaction] = completer;
 
-    _channel!.sink.add(jsonEncode(message));
+      _channel! .sink.add(jsonEncode(message));
 
-    final response = await completer.future.timeout(
-      Duration(seconds: 10),
-      onTimeout: () => throw TimeoutException('Plugin attach timeout'),
-    );
+      final response = await completer.future.timeout(
+        Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('Plugin attach timeout'),
+      );
 
-    if (response['janus'] == 'success') {
-      _handleId = response['data']['id'];
-      print('✅ Attached to streaming plugin: $_handleId');
-      _messageController.add('Attached to streaming plugin');
-    } else {
-      final error = response['error'] ?? 'Unknown error';
-      throw Exception('Failed to attach to plugin: $error');
+      if (response['janus'] == 'success') {
+        _handleId = response['data']['id'];
+        print('✅ Attached to streaming plugin:  $_handleId');
+        _messageController.add('Attached to streaming plugin');
+        return true;
+      } else {
+        final error = response['error'] ?? 'Unknown error';
+        print('❌ Failed to attach to plugin: $error');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Exception attaching to plugin: $e');
+      return false;
     }
   }
 
   /// List available streams
   Future<void> listStreams() async {
     if (_handleId == 0) {
-      throw Exception('No plugin handle. Call attachToStreamingPlugin() first.');
+      print('⚠️ No plugin handle. Call attachToStreamingPlugin() first.');
+      return;
     }
 
     final transaction = _generateTransaction();
     final message = {
       'janus': 'message',
-      'session_id': _sessionId,
+      'session_id':  _sessionId,
       'handle_id': _handleId,
       'transaction': transaction,
       'body': {
@@ -414,7 +422,7 @@ class JanusWebRTCClient {
   /// Watch a specific stream
   Future<void> watchStream(int streamId) async {
     if (_handleId == 0) {
-      throw Exception('No plugin handle. Call attachToStreamingPlugin() first.');
+      throw Exception('No plugin handle.  Call attachToStreamingPlugin() first.');
     }
 
     await _createPeerConnection();
@@ -422,7 +430,7 @@ class JanusWebRTCClient {
     final transaction = _generateTransaction();
     final message = {
       'janus': 'message',
-      'session_id': _sessionId,
+      'session_id':  _sessionId,
       'handle_id': _handleId,
       'transaction': transaction,
       'body': {
@@ -431,9 +439,9 @@ class JanusWebRTCClient {
       }
     };
 
-    _channel!.sink.add(jsonEncode(message));
+    _channel!. sink.add(jsonEncode(message));
     print('👁️ Watch stream $streamId request sent');
-    _messageController.add('Watching stream $streamId...');
+    _messageController.add('Watching stream $streamId.. .');
   }
 
   /// Start playback of current stream
@@ -449,13 +457,13 @@ class JanusWebRTCClient {
       'handle_id': _handleId,
       'transaction': transaction,
       'body': {
-        'request': 'start',
+        'request':  'start',
       }
     };
 
-    _channel!.sink.add(jsonEncode(message));
+    _channel! .sink.add(jsonEncode(message));
     print('▶️ Start stream request sent');
-    _messageController.add('Starting stream...');
+    _messageController. add('Starting stream.. .');
   }
 
   /// Stop current stream
@@ -464,14 +472,14 @@ class JanusWebRTCClient {
     final message = {
       'janus': 'message',
       'session_id': _sessionId,
-      'handle_id': _handleId,
+      'handle_id':  _handleId,
       'transaction': transaction,
-      'body': {
+      'body':  {
         'request': 'stop',
       }
     };
 
-    _channel!.sink.add(jsonEncode(message));
+    _channel!.sink. add(jsonEncode(message));
     print('⏹️ Stop stream request sent');
     _messageController.add('Stopping stream...');
   }
@@ -500,15 +508,15 @@ class JanusWebRTCClient {
     final message = {
       'janus': 'message',
       'session_id': _sessionId,
-      'handle_id': _handleId,
+      'handle_id':  _handleId,
       'transaction': transaction,
-      'body': {
+      'body':  {
         'request': 'switch',
         'id': streamId,
       }
     };
 
-    _channel!.sink.add(jsonEncode(message));
+    _channel!.sink. add(jsonEncode(message));
     print('🔄 Switch to stream $streamId request sent');
     _messageController.add('Switching to stream $streamId...');
   }
@@ -518,8 +526,25 @@ class JanusWebRTCClient {
     // OPTIMIZED ICE CONFIGURATION FOR LOW LATENCY
     final configuration = {
       'iceServers': [
+
+        {'urls': 'stun:13.203.89.154:3478'},
+        {'urls': 'turns:vdb-poc.duckdns.org:5349', 'username': 'vdb-poc', 'credential': 'vdb-poc'},
+        {'urls': 'turn:vdb-poc.duckdns.org:3478?transport=tcp', 'username': 'vdb-poc', 'credential': 'vdb-poc'},
+
+
         {'urls': 'stun:stun.l.google.com:19302'},
         {'urls': 'stun:stun1.l.google.com:19302'},
+        { 'urls': "stun:stun.l.google.com:19302" },
+        { 'urls': "stun:stun.l.google.com:5349" },
+        { 'urls': "stun:stun1.l.google.com:3478" },
+        { 'urls': "stun:stun1.l.google.com:5349" },
+        { 'urls': "stun:stun2.l.google.com:19302" },
+        { 'urls': "stun:stun2.l.google.com:5349" },
+        { 'urls': "stun:stun3.l.google.com:3478" },
+        { 'urls': "stun:stun3.l.google.com:5349" },
+        { 'urls': "stun:stun4.l.google.com:19302" },
+        { 'urls': "stun:stun4.l.google.com:5349" },
+
       ],
       // Prefer UDP for lower latency
       'iceTransportPolicy': 'all',
@@ -533,9 +558,9 @@ class JanusWebRTCClient {
 
     // Handle local ICE candidates
     _peerConnection!.onIceCandidate = (candidate) {
-      if (candidate.candidate != null) {
+      if (candidate. candidate != null) {
         _sendMessage({
-          'janus': 'trickle',
+          'janus':  'trickle',
           'session_id': _sessionId,
           'handle_id': _handleId,
           'candidate': {
@@ -544,38 +569,49 @@ class JanusWebRTCClient {
             'sdpMLineIndex': candidate.sdpMLineIndex,
           }
         });
-        print("📡 Local ICE candidate: ${candidate.candidate}");
+        print("📡 Local ICE candidate:  ${candidate.candidate}");
       } else {
         // ICE gathering complete
         _sendMessage({
-          'janus': 'trickle',
+          'janus':  'trickle',
           'session_id': _sessionId,
-          'handle_id': _handleId,
+          'handle_id':  _handleId,
           'candidate': {'completed': true}
         });
         print("✅ Local ICE gathering completed");
       }
     };
 
+    // Flag to prevent emitting the remote stream multiple times
+    bool _remoteStreamEmitted = false;
+
     // Handle remote tracks
     _peerConnection!.onTrack = (RTCTrackEvent event) {
       print('🎬 Remote track added: ${event.track.kind}');
-      if (event.streams.isNotEmpty) {
+      if (event.streams.isNotEmpty && !_remoteStreamEmitted) {
         _remoteStream = event.streams[0];
         _remoteStreamController.add(event.streams[0]);
-        _messageController.add('Remote ${event.track.kind} track received');
+        _remoteStreamEmitted = true;
+        _messageController.add('Remote stream received');
+        print('📺 Remote stream set on renderer (from onTrack)');
       }
     };
 
-    // Handle remote streams (legacy callback for compatibility)
+    // Legacy callback - only use as fallback if onTrack didn't fire
     _peerConnection!.onAddStream = (stream) {
       print('📺 Remote stream added (legacy callback)');
-      _remoteStream = stream;
-      _remoteStreamController.add(stream);
+      if (!_remoteStreamEmitted) {
+        _remoteStream = stream;
+        _remoteStreamController.add(stream);
+        _remoteStreamEmitted = true;
+        print('📺 Remote stream set on renderer (from onAddStream fallback)');
+      } else {
+        print('📺 Skipping duplicate stream assignment from onAddStream');
+      }
     };
 
     // Handle connection state changes
-    _peerConnection!.onConnectionState = (state) {
+    _peerConnection!. onConnectionState = (state) {
       print('🔌 Connection state: $state');
       _connectionStateController.add(state);
       _messageController.add('Connection state: ${state.toString().split('.').last}');
@@ -583,12 +619,12 @@ class JanusWebRTCClient {
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         _messageController.add('Connection failed - please retry');
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-        _messageController.add('Successfully connected!');
+        _messageController.add('Successfully connected! ');
       }
     };
 
     // Handle ICE connection state changes
-    _peerConnection!.onIceConnectionState = (state) {
+    _peerConnection!. onIceConnectionState = (state) {
       print('🧊 ICE connection state: $state');
       _iceStateController.add(state);
 
@@ -602,7 +638,7 @@ class JanusWebRTCClient {
     };
 
     // Handle ICE gathering state changes
-    _peerConnection!.onIceGatheringState = (state) {
+    _peerConnection!. onIceGatheringState = (state) {
       print('📊 ICE gathering state: $state');
     };
 
@@ -619,21 +655,26 @@ class JanusWebRTCClient {
       message['transaction'] = _generateTransaction();
     }
 
-    print('📤 Sending: $message');
+    print('📤 Sending:  $message');
     _channel!.sink.add(jsonEncode(message));
   }
 
   /// Generate random transaction ID
   String _generateTransaction() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    final random = Random.secure();
+    final random = Random. secure();
     return List.generate(12, (index) => chars[random.nextInt(chars.length)]).join();
   }
 
-  /// Start keep-alive timer
+  /// Start keep-alive timer (for backward compatibility with old API)
+  Future<void> keepAlive() async {
+    _startKeepAlive();
+  }
+
+  /// Start keep-alive timer (internal method)
   void _startKeepAlive() {
-    _keepAliveTimer?.cancel();
-    _keepAliveTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+    _keepAliveTimer?. cancel();
+    _keepAliveTimer = Timer. periodic(Duration(seconds: 30), (timer) {
       if (_channel != null && _sessionId > 0 && _isConnected) {
         _sendMessage({
           'janus': 'keepalive',
@@ -665,7 +706,7 @@ class JanusWebRTCClient {
         });
         print('✅ Session destroyed');
       } catch (e) {
-        print('⚠️ Error sending destroy: $e');
+        print('⚠️ Error sending destroy:  $e');
       }
     }
 
@@ -673,7 +714,7 @@ class JanusWebRTCClient {
     try {
       await _localStream?.dispose();
       await _peerConnection?.close();
-      _peerConnection?.dispose();
+      _peerConnection?. dispose();
       await _channel?.sink.close();
     } catch (e) {
       print('⚠️ Error during cleanup: $e');
