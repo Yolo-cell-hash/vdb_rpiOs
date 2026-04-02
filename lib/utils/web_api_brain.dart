@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:flutter/material.dart';
-import 'package:vdp_poc_new/screens/landing_screen.dart';
+import 'package:vdp_poc_new/screens/devices_list_screen.dart';
 import 'package:vdp_poc_new/screens/onboarding_screen.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -127,7 +127,7 @@ class WebApi {
           }
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const LandingScreen()),
+            MaterialPageRoute(builder: (context) => const DevicesListScreen()),
           );
 
           Provider.of<LoaderProvider>(context, listen: false).otpSent = false;

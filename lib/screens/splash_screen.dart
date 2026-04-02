@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:another_flutter_splash_screen/another_flutter_splash_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vdp_poc_new/screens/devices_list_screen.dart';
 import 'package:vdp_poc_new/screens/onboarding_screen.dart';
-import 'package:vdp_poc_new/screens/landing_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/utils/web_api_brain.dart';
@@ -56,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       setState(() {
-        _nextScreen = const LandingScreen();
+        _nextScreen = const DevicesListScreen();
         _isInitialized = true;
       });
     } else {

@@ -16,6 +16,8 @@ class LoaderProvider with ChangeNotifier {
   String _accessToekn = '';
   String _refreshToken = '';
   String _lockID = '';
+  String _deviceName = '';
+  String _firebasePath = '';
 
   dynamic _otp ;
 
@@ -34,6 +36,8 @@ class LoaderProvider with ChangeNotifier {
   String get accessToken => _accessToekn;
   String get refreshToken => _refreshToken;
   String get lockID => _lockID;
+  String get deviceName => _deviceName;
+  String get firebasePath => _firebasePath;
 
   dynamic get otp => _otp;
 
@@ -69,6 +73,16 @@ class LoaderProvider with ChangeNotifier {
 
   set lockID(String newValue) {
     _lockID = newValue;
+    notifyListeners();
+  }
+
+  void setDeviceName(String newValue) {
+    _deviceName = newValue;
+    notifyListeners();
+  }
+
+  void setFirebasePath(String newValue){
+    _firebasePath = newValue;
     notifyListeners();
   }
 

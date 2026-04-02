@@ -21,6 +21,7 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
   @override
   Widget build(BuildContext context) {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+    String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
     FirebaseDatabase database = fbUtils.database;
     final selectedUserProvider = Provider.of<LoaderProvider>(context);
     name = selectedUserProvider.selectedUserName;
@@ -37,11 +38,11 @@ class _DeleteUserWidgetState extends State<DeleteUserWidget> {
             });
             try {
               DatabaseReference deleteUsers = database.ref(
-                '/dev_env/deleteUsers',
+                '/${fb_path}/deleteUsers',
               );
               await deleteUsers.set(name);
 
-              DatabaseReference ack = database.ref('/dev_env/ack');
+              DatabaseReference ack = database.ref('/${fb_path}/ack');
               final DatabaseEvent event = await ack.onValue.skip(1).first;
 
               final DataSnapshot snapshot = event.snapshot;

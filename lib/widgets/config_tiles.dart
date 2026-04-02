@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 
 class ConfigTiles extends StatelessWidget {
 
-  dynamic title, subtitle;
+  dynamic title, subtitle, id, fb_path;
   dynamic voidCallbackFunc;
   IconData tileIcon;
 
-  ConfigTiles({this.title,this.subtitle,required this.tileIcon,this.voidCallbackFunc});
+  ConfigTiles({this.title,this.subtitle,required this.tileIcon,this.voidCallbackFunc, this.id, this.fb_path});
 
 
   @override

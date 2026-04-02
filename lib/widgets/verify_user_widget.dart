@@ -22,7 +22,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
   dynamic data;
   late JanusWebRTCClient _client;
   bool _connected = false;
-  late String ip;
+  late String ip, fb_path;
   String _status = 'Disconnected';
   FbUtils fbUtils = FbUtils();
   RTCVideoRenderer _localRenderer = RTCVideoRenderer();
@@ -70,8 +70,10 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
       );
       loaderProvider.showLoader();
       try {
+        fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
+
         FirebaseDatabase database = fbUtils.database;
-        DatabaseReference verifyUser = database.ref('/dev_env/sendFeed');
+        DatabaseReference verifyUser = database.ref('/${fb_path}/sendFeed');
         await verifyUser.set(true);
 
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
@@ -110,6 +112,8 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
   Widget build(BuildContext context) {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FirebaseDatabase database = fbUtils.database;
+    String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
+
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) async {
@@ -118,7 +122,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
           loaderProvider.showLoader();
           await _client.disconnect();
           DatabaseReference userResponseFieldRef = database.ref(
-            '/dev_env/sendFeed',
+            '/${fb_path}/sendFeed',
           );
           try {
             await userResponseFieldRef.set(false);
@@ -166,16 +170,16 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget> {
                 DatabaseReference sendFeed = database.ref('/dev_en   v/sendFeed');
                 await sendFeed.set(false);
 
-                DatabaseReference feed = database.ref('/dev_env/verifyUsers');
+                DatabaseReference feed = database.ref('/${fb_path}/verifyUsers');
                 await feed.set(true);
                 //
-                DatabaseReference confirmClick = database.ref('/dev_env/confirm');
+                DatabaseReference confirmClick = database.ref('/${fb_path}/confirm');
                 await confirmClick.set(true);
 
 
 
                 DatabaseReference ack = database.ref(
-                  '/dev_env/ack',
+                  '/${fb_path}/ack',
                 );
 
                 final DatabaseEvent event = await ack.onValue.skip(1).first;

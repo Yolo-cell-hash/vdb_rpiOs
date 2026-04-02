@@ -32,7 +32,7 @@ class PrivacyConditionsHyper extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LandingScreen(),
+                          builder: (context) => const LandingScreen(title: "User",),
                         ),
                       );
                     },

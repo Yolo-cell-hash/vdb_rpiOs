@@ -12,56 +12,44 @@ import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/utils/web_api_brain.dart';
 
 class LandingScreen extends StatefulWidget {
-  const LandingScreen({super.key});
+  final String? title, fb_path;
+  const LandingScreen({super.key,  this.title, this.fb_path});
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin {
+class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin{
   WebSocketSingleton webSocketSingleton = WebSocketSingleton();
 
   @override
   void dispose() {
-    _animationController?.dispose();
     webSocketSingleton.close();
+    _animationController?.dispose();
     super.dispose();
   }
 
   int _selectedIndex = 0;
-  late bool isWifiConnected;
-  bool isCheckingWifi = true; // Start as true to show loading initially
-  bool showSuccessAnimation = false; // Flag for success animation
-  bool showFailureAnimation = false; // Flag for failure animation
-  bool _didChangeDependenciesRun = false;
-  bool _isSkipped = false; // Flag to track if user skipped the check
-  bool _isCancelled = false; // Flag to cancel ongoing check
 
-  AnimationController? _animationController;
-  Animation<double>? _scaleAnimation;
 
   FbUtils fbUtils = FbUtils();
 
   @override
   void initState() {
     super.initState();
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController!,
-        curve: Curves.elasticOut,
-      ),
+      CurvedAnimation(parent: _animationController!, curve: Curves.elasticOut),
     );
-
     // Check token validity and refresh if needed
     _checkTokenValidity();
   }
 
-  // Check if tokens are valid and refresh if needed
   Future<void> _checkTokenValidity() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
 
@@ -75,10 +63,32 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     }
   }
 
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+
+
+  late bool isWifiConnected;
+  bool isCheckingWifi = true; // Start as true to show loading initially
+  bool showSuccessAnimation = false; // Flag for success animation
+  bool showFailureAnimation = false; // Flag for failure animation
+  bool _didChangeDependenciesRun = false;
+  bool _isSkipped = false; // Flag to track if user skipped the check
+  bool _isCancelled = false; // Flag to cancel ongoing check
+
+  AnimationController? _animationController;
+  Animation<double>? _scaleAnimation;
+
+
+
   Future<void> checkWifiConnection() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FirebaseDatabase database = fbUtils.database;
-    DatabaseReference wifiState = database.ref('/dev_env/wifi_state');
+    DatabaseReference wifiState = database.ref('/${widget.fb_path}/wifi_state');
 
     setState(() {
       isCheckingWifi = true;
@@ -147,7 +157,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => WifiDisconnectedScreen(
+                builder:
+                    (context) => WifiDisconnectedScreen(
                   onRetry: () {
                     Navigator.pushReplacement(
                       context,
@@ -217,7 +228,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => WifiDisconnectedScreen(
+              builder:
+                  (context) => WifiDisconnectedScreen(
                 onRetry: () {
                   Navigator.pushReplacement(
                     context,
@@ -263,12 +275,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     });
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -301,13 +307,14 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                 const SizedBox(height: 50),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return ScaleTransition(
-                      scale: animation,
-                      child: child,
-                    );
+                  transitionBuilder: (
+                      Widget child,
+                      Animation<double> animation,
+                      ) {
+                    return ScaleTransition(scale: animation, child: child);
                   },
-                  child: showSuccessAnimation
+                  child:
+                  showSuccessAnimation
                       ? ScaleTransition(
                     key: const ValueKey('success'),
                     scale: _scaleAnimation!,
@@ -362,7 +369,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     width: 50,
                     height: 50,
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                       strokeWidth: 4,
                     ),
                   ),
@@ -376,7 +385,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                         : showFailureAnimation
                         ? 'Connection Failed!'
                         : 'Checking Device Connection...',
-                    key: ValueKey('$showSuccessAnimation-$showFailureAnimation'),
+                    key: ValueKey(
+                      '$showSuccessAnimation-$showFailureAnimation',
+                    ),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -388,18 +399,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                 if (!showSuccessAnimation && !showFailureAnimation)
                   const Text(
                     'Please wait',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   )
                 else if (showFailureAnimation)
                   const Text(
                     'Unable to reach device',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
               ],
             ),
@@ -413,7 +418,10 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                 onTap: _skipWifiCheck,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -453,13 +461,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     if (isCheckingWifi) {
-      return SafeArea(
-        child: Scaffold(
-          body: _buildWifiCheckingScreen(),
-        ),
-      );
+      return SafeArea(child: Scaffold(body: _buildWifiCheckingScreen()));
     }
-
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
@@ -486,9 +489,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           ),
           leading: Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
+              icon: const Icon(Icons.chevron_left, color: Colors.white),
               onPressed: () {
-                Scaffold.of(context).openDrawer();
+                Navigator.pop(context);
               },
             ),
           ),
@@ -499,9 +502,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           ),
           centerTitle: true,
         ),
-        drawer: const MenuWidget(),
         body: _selectedIndex == 0
-            ? const HomeScreenHomeWidget()
+            ?  HomeScreenHomeWidget(title: widget.title!,)
             : SettingsScreen(),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[

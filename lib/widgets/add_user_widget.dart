@@ -101,7 +101,8 @@ class _AddUserWidgetState extends State<AddUserWidget> {
 
   @override
   Widget build(BuildContext context) {
-    String ip = Provider.of<LoaderProvider>(context, listen: false).ip;
+    String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
+
     FirebaseDatabase database = fbUtils.database;
     return PopScope(
       onPopInvokedWithResult: (didPop, result) async {
@@ -110,7 +111,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
           loaderProvider.showLoader();
           await _client.disconnect();
           DatabaseReference userResponseFieldRef = database.ref(
-            '/dev_env/sendFeed',
+            '/${fb_path}/sendFeed',
           );
           try {
             await userResponseFieldRef.set(false);
@@ -153,7 +154,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                     loaderProvider.showLoader();
                     try {
                       DatabaseReference sendFeedState = database.ref(
-                        '/dev_env/sendFeed',
+                        '/${fb_path}/sendFeed',
                       );
                       try {
                         await sendFeedState.set(true);
@@ -230,19 +231,19 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                 loaderProvider.showLoader();
                 try {
                   DatabaseReference userResponseFieldRef = database.ref(
-                    '/dev_env/addUsers',
+                    '/${fb_path}/addUsers',
                   );
 
                   DatabaseReference showFeedField = database.ref(
-                    '/dev_env/sendFeed',
+                    '/${fb_path}/sendFeed',
                   );
 
                   DatabaseReference confirmClick = database.ref(
-                    '/dev_env/confirm',
+                    '/${fb_path}/confirm',
                   );
 
                   DatabaseReference ack = database.ref(
-                    '/dev_env/ack',
+                    '/${fb_path}/ack',
                   );
 
                   await userResponseFieldRef.set(name);

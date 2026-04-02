@@ -74,9 +74,10 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
   }
 
   Future<void> checkWifiConnection() async {
+    String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FirebaseDatabase database = fbUtils.database;
-    DatabaseReference wifiState = database.ref('/dev_env/wifi_state');
+    DatabaseReference wifiState = database.ref('/${fb_path}/wifi_state');
 
     setState(() {
       isCheckingWifi = true;
@@ -137,11 +138,12 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
     if (!_didChangeDependenciesRun) {
       final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
 
       DatabaseReference survaillanceRef = fbUtils.database.ref(
-        '/dev_env/survailanceModeEnabled',
+        '/${fb_path}/survailanceModeEnabled',
       );
 
       // Check WiFi connection on screen initialization
@@ -169,6 +171,7 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
     FirebaseDatabase database = fbUtils.database;
     final isLoading = Provider.of<LoaderProvider>(context).isLoading;
@@ -243,10 +246,10 @@ class _ConnectedScreenState extends State<ConnectedScreen> {
                             setState(() => positive = b);
 
                             DatabaseReference survailanceMode = database.ref(
-                              '/dev_env/survailanceModeEnabled',
+                              '/${fb_path}/survailanceModeEnabled',
                             );
                             DatabaseReference ack = database.ref(
-                              '/dev_env/ack',
+                              '/${fb_path}/ack',
                             );
 
                             try {

@@ -223,7 +223,7 @@ class _WifiCredentialsFormState extends State<WifiCredentialsForm> {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const LandingScreen(),
+                                    builder: (context) => const LandingScreen(title: "User",),
                                   ),
                                 );
                               },
