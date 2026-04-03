@@ -1,4 +1,4 @@
-import 'package:firebase_database/firebase_database.dart';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:vdp_poc_new/screens/splash_screen.dart';
@@ -203,24 +203,17 @@ void _navigateToStream() {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  late Future<FirebaseApp> _initialization;
   final FbUtils fbUtils = FbUtils();
-  late DatabaseReference _dbRef1;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _dbRef1 = fbUtils.database.ref("/dev_env/fcm_token");
-
     fbUtils.fbPushNotification();
     fbUtils.getNotifPermission();
 
-    _initialization = Future.value(Firebase.app());
-
-    getToken('abcdef');
-    getDatafromDB(_initialization);
+    _storeFcmTokenLocally();
 
     // Foreground data messages -> show simple local notification
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -349,29 +342,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  Future<void> getToken(String accessToken) async {
+  // Store FCM token in Provider only — written to Firebase after device selection
+  Future<void> _storeFcmTokenLocally() async {
     final token = await FirebaseMessaging.instance.getToken();
-    if (token != null) {
-      try {
-        await _dbRef1.set(token);
-      } catch (_) {}
+    if (token != null && mounted) {
+      Provider.of<LoaderProvider>(context, listen: false).setFcmToken(token);
     }
-  }
-
-  Future<void> getDatafromDB(Future<FirebaseApp> initialization) async {
-    final Map<String, dynamic> data = await fbUtils.backgroundListen(
-      initialization,
-      context,
-    );
-    Provider.of<LoaderProvider>(
-      context,
-      listen: false,
-    ).setFcmToken(data['fcm_token']);
-    Provider.of<LoaderProvider>(context, listen: false).setIp(data['ipv6']);
-    Provider.of<LoaderProvider>(
-      context,
-      listen: false,
-    ).setWifiState(data['wifi_state']);
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,27 +11,29 @@ import 'package:vdp_poc_new/screens/wifi_disconnected_screen.dart';
 import 'package:vdp_poc_new/utils/firebase_core_utils.dart';
 import 'package:vdp_poc_new/utils/loader_provider.dart';
 import 'package:vdp_poc_new/utils/web_api_brain.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LandingScreen extends StatefulWidget {
   final String? title, fb_path;
-  const LandingScreen({super.key,  this.title, this.fb_path});
+  const LandingScreen({super.key, this.title, this.fb_path});
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin{
+class _LandingScreenState extends State<LandingScreen>
+    with SingleTickerProviderStateMixin {
   WebSocketSingleton webSocketSingleton = WebSocketSingleton();
 
   @override
   void dispose() {
     webSocketSingleton.close();
+    fbUtils.cancelBackgroundListen();
     _animationController?.dispose();
     super.dispose();
   }
 
   int _selectedIndex = 0;
-
 
   FbUtils fbUtils = FbUtils();
 
@@ -46,15 +49,24 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController!, curve: Curves.elasticOut),
     );
-    // Check token validity and refresh if needed
-    _checkTokenValidity();
+    // Initialize device binding (token check → bind to selected device)
+    _initializeDevice();
+  }
+
+  /// Sequence: check token validity first, then bind to the selected device.
+  Future<void> _initializeDevice() async {
+    await _checkTokenValidity();
+    if (mounted) {
+      await _bindToDevice();
+    }
   }
 
   Future<void> _checkTokenValidity() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
 
     // Check if access token exists
-    if (loaderProvider.accessToken.isEmpty && loaderProvider.refreshToken.isNotEmpty) {
+    if (loaderProvider.accessToken.isEmpty &&
+        loaderProvider.refreshToken.isNotEmpty) {
       print('Access token missing, attempting to refresh...');
       await WebApi().useRefreshTokenToGetAccessToken(context);
     } else if (loaderProvider.refreshToken.isEmpty) {
@@ -63,14 +75,76 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     }
   }
 
+  /// Write access token, refresh token, and FCM token to the selected device's
+  /// Firebase path, then start the background listener for device-specific data.
+  Future<void> _bindToDevice() async {
+    final fbPath = widget.fb_path;
+    if (fbPath == null || fbPath.isEmpty) return;
+
+    final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+
+    // Persist the selected firebase path to SharedPreferences
+    // so clearAllTokens (static) can read it later.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('firebase_path', fbPath);
+
+    FirebaseDatabase database = fbUtils.database;
+
+    // Write access token to this device's path
+    if (loaderProvider.accessToken.isNotEmpty) {
+      try {
+        await database
+            .ref('$fbPath/accessToken')
+            .set(loaderProvider.accessToken);
+        print('Access token written to $fbPath');
+      } catch (e) {
+        print('Error writing access token to Firebase: $e');
+      }
+    }
+
+    // Write refresh token to this device's path
+    if (loaderProvider.refreshToken.isNotEmpty) {
+      try {
+        await database
+            .ref('$fbPath/refresh_token')
+            .set(loaderProvider.refreshToken);
+        print('Refresh token written to $fbPath');
+      } catch (e) {
+        print('Error writing refresh token to Firebase: $e');
+      }
+    }
+
+    // Write FCM token to this device's path
+    if (loaderProvider.fcmToken.isNotEmpty) {
+      try {
+        await database.ref('$fbPath/fcm_token').set(loaderProvider.fcmToken);
+        print('FCM token written to $fbPath');
+      } catch (e) {
+        print('Error writing FCM token to Firebase: $e');
+      }
+    }
+
+    // Start background listener for device-specific data (wifi_state, ipv6, etc.)
+    try {
+      final data = await fbUtils.backgroundListen(
+        Future.value(Firebase.app()),
+        context,
+        fbPath,
+      );
+      if (mounted && data.isNotEmpty) {
+        loaderProvider.setIp(data['ipv6'] ?? '');
+        loaderProvider.setWifiState(data['wifi_state'] ?? false);
+      }
+    } catch (e) {
+      print('Error starting background listener: $e');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
-
-
 
   late bool isWifiConnected;
   bool isCheckingWifi = true; // Start as true to show loading initially
@@ -82,8 +156,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
   AnimationController? _animationController;
   Animation<double>? _scaleAnimation;
-
-
 
   Future<void> checkWifiConnection() async {
     final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
@@ -159,34 +231,34 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               MaterialPageRoute(
                 builder:
                     (context) => WifiDisconnectedScreen(
-                  onRetry: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LandingScreen(),
-                      ),
-                    );
-                  },
-                  onSkip: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LandingScreen(),
-                      ),
-                    ).then((_) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          setState(() {
-                            _isSkipped = true;
-                            isCheckingWifi = false;
-                            showSuccessAnimation = false;
-                            showFailureAnimation = false;
+                      onRetry: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LandingScreen(),
+                          ),
+                        );
+                      },
+                      onSkip: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LandingScreen(),
+                          ),
+                        ).then((_) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              setState(() {
+                                _isSkipped = true;
+                                isCheckingWifi = false;
+                                showSuccessAnimation = false;
+                                showFailureAnimation = false;
+                              });
+                            }
                           });
-                        }
-                      });
-                    });
-                  },
-                ),
+                        });
+                      },
+                    ),
               ),
             );
           }
@@ -230,34 +302,34 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
             MaterialPageRoute(
               builder:
                   (context) => WifiDisconnectedScreen(
-                onRetry: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LandingScreen(),
-                    ),
-                  );
-                },
-                onSkip: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LandingScreen(),
-                    ),
-                  ).then((_) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        setState(() {
-                          _isSkipped = true;
-                          isCheckingWifi = false;
-                          showSuccessAnimation = false;
-                          showFailureAnimation = false;
+                    onRetry: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LandingScreen(),
+                        ),
+                      );
+                    },
+                    onSkip: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LandingScreen(),
+                        ),
+                      ).then((_) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _isSkipped = true;
+                              isCheckingWifi = false;
+                              showSuccessAnimation = false;
+                              showFailureAnimation = false;
+                            });
+                          }
                         });
-                      }
-                    });
-                  });
-                },
-              ),
+                      });
+                    },
+                  ),
             ),
           );
         }
@@ -308,73 +380,73 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
                   transitionBuilder: (
-                      Widget child,
-                      Animation<double> animation,
-                      ) {
+                    Widget child,
+                    Animation<double> animation,
+                  ) {
                     return ScaleTransition(scale: animation, child: child);
                   },
                   child:
-                  showSuccessAnimation
-                      ? ScaleTransition(
-                    key: const ValueKey('success'),
-                    scale: _scaleAnimation!,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                      showSuccessAnimation
+                          ? ScaleTransition(
+                            key: const ValueKey('success'),
+                            scale: _scaleAnimation!,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.green,
+                                size: 50,
+                              ),
+                            ),
+                          )
+                          : showFailureAnimation
+                          ? ScaleTransition(
+                            key: const ValueKey('failure'),
+                            scale: _scaleAnimation!,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.red,
+                                size: 50,
+                              ),
+                            ),
+                          )
+                          : const SizedBox(
+                            key: ValueKey('loading'),
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                              strokeWidth: 4,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.green,
-                        size: 50,
-                      ),
-                    ),
-                  )
-                      : showFailureAnimation
-                      ? ScaleTransition(
-                    key: const ValueKey('failure'),
-                    scale: _scaleAnimation!,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.red,
-                        size: 50,
-                      ),
-                    ),
-                  )
-                      : const SizedBox(
-                    key: ValueKey('loading'),
-                    width: 50,
-                    height: 50,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white,
-                      ),
-                      strokeWidth: 4,
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 30),
                 AnimatedSwitcher(
@@ -488,12 +560,13 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
             ),
           ),
           leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.chevron_left, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
+            builder:
+                (context) => IconButton(
+                  icon: const Icon(Icons.chevron_left, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
           ),
           title: SvgPicture.asset(
             'images/gnb_new_logo_.svg',
@@ -502,9 +575,10 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           ),
           centerTitle: true,
         ),
-        body: _selectedIndex == 0
-            ?  HomeScreenHomeWidget(title: widget.title!,)
-            : SettingsScreen(),
+        body:
+            _selectedIndex == 0
+                ? HomeScreenHomeWidget(title: widget.title!)
+                : SettingsScreen(),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(

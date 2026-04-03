@@ -30,7 +30,6 @@ class _LogInScreenState extends State<LogInScreen> {
   dynamic tokens;
   String? _token;
   dynamic dbResponse1;
-  late DatabaseReference _dbRef;
   StreamSubscription<DatabaseEvent>? _dbSubscription, _dbSubscription1;
   WebApi webApi = WebApi();
   late Future<FirebaseApp> _initialization;
@@ -54,7 +53,6 @@ class _LogInScreenState extends State<LogInScreen> {
         databaseURL:
         'https://advantis-smartlocks-uat-iot9-default-rtdb.asia-southeast1.firebasedatabase.app/',
       );
-      _dbRef = database.ref("dev_env");
     });
   }
 

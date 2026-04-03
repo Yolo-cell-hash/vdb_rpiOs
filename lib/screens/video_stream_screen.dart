@@ -132,7 +132,8 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
       try {
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
 
-        ipType = (await fbUtils.readIpType()).toString();
+        String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
+        ipType = (await fbUtils.readIpType(fb_path)).toString();
 
         print('IP TYPE IS ---------- $ipType');
 

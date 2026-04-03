@@ -103,28 +103,9 @@ class WebApi {
             extractedRefreshToken,
           );
 
-          try {
-            FirebaseDatabase database = FirebaseDatabase.instanceFor(
-              app: Firebase.app(),
-              databaseURL:
-              'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
-            );
-            DatabaseReference tokenRef = database.ref("dev_env/accessToken");
+          // Firebase write is deferred to LandingScreen._bindToDevice()
+          // after the user selects a device in DevicesListScreen.
 
-            await tokenRef.set(extractedAccessToken);
-
-            DatabaseReference refreshToken = database.ref(
-              "dev_env/refresh_token",
-            );
-
-            await refreshToken.set(extractedRefreshToken);
-
-            print(
-              'Access Token successfully stored in Firebase at /updates/accessToken',
-            );
-          } catch (e) {
-            print('Error storing access token in Firebase: $e');
-          }
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const DevicesListScreen()),
@@ -248,30 +229,37 @@ class WebApi {
     try {
       // Clear from shared preferences
       final prefs = await SharedPreferences.getInstance();
+      final fbPath = prefs.getString('firebase_path') ?? '';
+
       await prefs.remove(_accessTokenKey);
       await prefs.remove(_refreshTokenKey);
       await prefs.remove(_tokenTimestampKey);
       await prefs.remove(_refreshTokenTimestampKey);
+      await prefs.remove('firebase_path');
 
       print('All tokens cleared from shared preferences');
 
-      // Clear from Firebase
-      try {
-        FirebaseDatabase database = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL:
-          'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
-        );
+      // Clear from Firebase only if we know which device path was selected
+      if (fbPath.isNotEmpty) {
+        try {
+          FirebaseDatabase database = FirebaseDatabase.instanceFor(
+            app: Firebase.app(),
+            databaseURL:
+            'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+          );
 
-        DatabaseReference accessTokenRef = database.ref("dev_env/accessToken");
-        await accessTokenRef.remove();
+          DatabaseReference accessTokenRef = database.ref("$fbPath/accessToken");
+          await accessTokenRef.remove();
 
-        DatabaseReference refreshTokenRef = database.ref("dev_env/refresh_token");
-        await refreshTokenRef.remove();
+          DatabaseReference refreshTokenRef = database.ref("$fbPath/refresh_token");
+          await refreshTokenRef.remove();
 
-        print('Tokens cleared from Firebase');
-      } catch (e) {
-        print('Error clearing tokens from Firebase: $e');
+          print('Tokens cleared from Firebase path: $fbPath');
+        } catch (e) {
+          print('Error clearing tokens from Firebase: $e');
+        }
+      } else {
+        print('No firebase_path persisted — skipping Firebase token clear');
       }
     } catch (e) {
       print('Error clearing tokens: $e');
@@ -487,18 +475,23 @@ class WebApi {
           );
 
           try {
-            FirebaseDatabase database = FirebaseDatabase.instanceFor(
-              app: Firebase.app(),
-              databaseURL:
-              'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
-            );
-            DatabaseReference tokenRef = database.ref("dev_env/accessToken");
+            final fbPath = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
+            if (fbPath.isNotEmpty) {
+              FirebaseDatabase database = FirebaseDatabase.instanceFor(
+                app: Firebase.app(),
+                databaseURL:
+                'https://vdb-poc-default-rtdb.asia-southeast1.firebasedatabase.app/',
+              );
+              DatabaseReference tokenRef = database.ref("$fbPath/accessToken");
 
-            await tokenRef.set(extractedAccessToken);
+              await tokenRef.set(extractedAccessToken);
 
-            print(
-              'Access Token successfully refreshed and stored',
-            );
+              print(
+                'Access Token successfully refreshed and stored at $fbPath',
+              );
+            } else {
+              print('No firebasePath set — skipping Firebase token write');
+            }
           } catch (e) {
             print('Error storing access token in Firebase: $e');
           }
