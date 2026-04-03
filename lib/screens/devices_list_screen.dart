@@ -67,12 +67,13 @@ class _DevicesListScreenState extends State<DevicesListScreen>
                 voidCallbackFunc: () {
                   print('Advantis IoT9 VDB Clicked');
                   Provider.of<LoaderProvider>(context, listen: false).setDeviceName('Advantis IoT9');
+                  Provider.of<LoaderProvider>(context,listen: false).setStreamId(7);
                   Provider.of<LoaderProvider>(context, listen: false).setFirebasePath('dev_env');
 
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LandingScreen(title: 'Advantis IoT9 VDB',fb_path: 'dev_env',),
+                      builder: (context) => LandingScreen(title: 'Advantis IoT9 VDB',fb_path: 'dev_env',stream_id: 7,),
                     ),
                   );
                 },
@@ -86,12 +87,13 @@ class _DevicesListScreenState extends State<DevicesListScreen>
                 tileIcon: Icons.video_camera_back,
                 voidCallbackFunc: () {
                   Provider.of<LoaderProvider>(context, listen: false).setDeviceName('Advantis GSLD1');
+                  Provider.of<LoaderProvider>(context,listen: false).setStreamId(8);
                   Provider.of<LoaderProvider>(context, listen: false).setFirebasePath('gsld1_vdb_env');
                   print('GSLD1 VDB Clicked');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LandingScreen(title: 'Advantis GSLD1 VDB', fb_path: 'gsld1_vdb_env',),
+                      builder: (context) => LandingScreen(title: 'Advantis GSLD1 VDB', fb_path: 'gsld1_vdb_env',stream_id: 8,),
                     ),
                   );
                 },
@@ -106,11 +108,12 @@ class _DevicesListScreenState extends State<DevicesListScreen>
                 voidCallbackFunc: () {
                   print('VDB Module Clicked');
                   Provider.of<LoaderProvider>(context, listen: false).setDeviceName('Standard VDB');
+                  Provider.of<LoaderProvider>(context,listen: false).setStreamId(9);
                   Provider.of<LoaderProvider>(context, listen: false).setFirebasePath('standard_vdb_env');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LandingScreen(title: 'Standard VDB', fb_path: 'standard_vdb_env',),
+                      builder: (context) => LandingScreen(title: 'Standard VDB', fb_path: 'standard_vdb_env',stream_id: 9,),
                     ),
                   );
                 },
@@ -125,11 +128,12 @@ class _DevicesListScreenState extends State<DevicesListScreen>
                 voidCallbackFunc: () {
                   print('Dev VDB Module 1 Clicked');
                   Provider.of<LoaderProvider>(context, listen: false).setDeviceName('Dev VDB Module 1');
+                  Provider.of<LoaderProvider>(context,listen: false).setStreamId(10);
                   Provider.of<LoaderProvider>(context, listen: false).setFirebasePath('dev_vdb_env1');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LandingScreen(title: 'Dev VDB Module 1', fb_path: 'dev_vdb_env1',),
+                      builder: (context) => LandingScreen(title: 'Dev VDB Module 1', fb_path: 'dev_vdb_env1',stream_id: 10,),
                     ),
                   );
                 },
@@ -144,11 +148,12 @@ class _DevicesListScreenState extends State<DevicesListScreen>
                 voidCallbackFunc: () {
                   print('Dev VDB Module 2 Clicked');
                   Provider.of<LoaderProvider>(context, listen: false).setDeviceName('Dev VDB Module 2');
+                  Provider.of<LoaderProvider>(context,listen: false).setStreamId(11);
                   Provider.of<LoaderProvider>(context, listen: false).setFirebasePath('dev_vdb_env2');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LandingScreen(title: 'Dev VDB Module 2', fb_path: 'dev_vdb_env2',),
+                      builder: (context) => LandingScreen(title: 'Dev VDB Module 2', fb_path: 'dev_vdb_env2',stream_id: 11,),
                     ),
                   );
                 },

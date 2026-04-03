@@ -18,6 +18,7 @@ class AddUserWidget extends StatefulWidget {
 class _AddUserWidgetState extends State<AddUserWidget> {
   late String name;
   late String ip;
+  late int streamId;
   String _status = 'Disconnected';
   bool _connected = false;
   bool isStreamStarted = false;
@@ -27,7 +28,6 @@ class _AddUserWidgetState extends State<AddUserWidget> {
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
 
   void _watchStream() async {
-    final streamId = 7;
     await _client.watchStream(streamId);
     print(
       'Wacth Stream Called -------------------------------------------',
@@ -69,6 +69,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
       loaderProvider.showLoader();
       try {
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
+        streamId = Provider.of<LoaderProvider>(context,listen: false).streamId;
         _client = JanusWebRTCClient('ws://$ip:8188');
         await connectOnPageInit();
         _client.messages.listen((message) {

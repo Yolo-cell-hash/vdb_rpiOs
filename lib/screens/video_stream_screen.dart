@@ -30,6 +30,7 @@ class VideoStreamScreen extends StatefulWidget {
 
 class _VideoStreamScreenState extends State<VideoStreamScreen> {
   late String ip;
+  late int streamId;
   late String? ipType;
   String? _recordedFilePath;
   BleUtil bleUtil = BleUtil();
@@ -82,7 +83,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
   }
 
   void _watchStream() async {
-    final streamId = 7;                              //////STREAM ID HERE, CHANGES HERE !!!
+    // final streamId = 7;                              //////STREAM ID HERE, CHANGES HERE !!!
     await _client.watchStream(streamId);
     print(
       'Wacth Stream Called ---------------------------------------------------------------',
@@ -108,7 +109,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
   }
 
   void _startStream() async {
-    final streamId = 7;
+    // final streamId = 7;
     if (streamId != null) {
       await _client.startStream(streamId);
     }
@@ -131,6 +132,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
       loaderProvider.showLoader();
       try {
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
+        streamId = Provider.of<LoaderProvider>(context, listen: false).streamId;
 
         String fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
         ipType = (await fbUtils.readIpType(fb_path)).toString();

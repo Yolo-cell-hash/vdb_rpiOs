@@ -15,7 +15,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LandingScreen extends StatefulWidget {
   final String? title, fb_path;
-  const LandingScreen({super.key, this.title, this.fb_path});
+  final int? stream_id;
+  const LandingScreen({super.key, this.title, this.fb_path, this.stream_id});
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
