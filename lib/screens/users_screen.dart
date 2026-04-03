@@ -15,7 +15,8 @@ import 'package:vdp_poc_new/widgets/view_users_widget.dart';
 import 'package:vdp_poc_new/widgets/verify_user_widget.dart';
 
 class UsersScreen extends StatefulWidget {
-  const UsersScreen({super.key});
+  final bool embedded;
+  const UsersScreen({super.key, this.embedded = false});
 
   @override
   State<UsersScreen> createState() => _UsersScreenState();
@@ -50,11 +51,127 @@ class _UsersScreenState extends State<UsersScreen> {
     super.dispose();
   }
 
+  Widget _buildBody() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 25.0,
+        vertical: 25.0,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Visibility(
+              visible: showAdd,
+              child: Column(
+                children: [
+                  ConfigTiles(
+                    tileIcon: Icons.add,
+                    title: 'Add Users',
+                    subtitle: 'Some subtitle',
+                    voidCallbackFunc: () {
+                      print('Hello World');
+                      setState(() {
+                        addUserClicked = !addUserClicked;
+                        showDel = !showDel;
+                        showView = !showView;
+                        showVerify = !showVerify;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 20),
+                ],
+              ),
+            ),
+            Visibility(
+              visible: showDel,
+              child: Column(
+                children: [
+                  ConfigTiles(
+                    tileIcon: Icons.delete,
+                    title: 'Delete Users',
+                    subtitle: 'Some subtitle',
+                    voidCallbackFunc: () {
+                      setState(() {
+                        deleteUserClicked = !deleteUserClicked;
+                        showView = !showView;
+                        showVerify = !showVerify;
+                        showAdd = !showAdd;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 20),
+                ],
+              ),
+            ),
+            Visibility(
+              visible: showVerify,
+              child: Column(
+                children: [
+                  ConfigTiles(
+                    tileIcon: Icons.remove_red_eye_rounded,
+                    title: 'Verify Users',
+                    subtitle: 'Some subtitle',
+                    voidCallbackFunc: () {
+                      setState(() {
+                        showAdd = !showAdd;
+                        showView = !showView;
+                        showDel = !showDel;
+                        verifyUserClicked = !verifyUserClicked;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 20.0),
+                ],
+              ),
+            ),
+            Visibility(
+              visible: showView,
+              child: Column(
+                children: [
+                  ConfigTiles(
+                    tileIcon: Icons.people_alt,
+                    title: 'View Users',
+                    subtitle: 'Some subtitle',
+                    voidCallbackFunc: () {
+                      setState(() {
+                        showVerify = !showVerify;
+                        showDel = !showDel;
+                        showAdd = !showAdd;
+                        viewUserClicked = !viewUserClicked;
+                      });
+                      if (webSocketSingleton.channel != null) {
+                        print('Sent: View Users');
+                      } else {
+                        print('Channel is not connected');
+                      }
+                    },
+                  ),
+                  SizedBox(height: 20.0),
+                ],
+              ),
+            ),
+            Visibility(visible: addUserClicked, child: AddUserWidget()),
+            Visibility(visible: deleteUserClicked, child: DeleteUserWidget()),
+            Visibility(visible: verifyUserClicked, child: VerifyUserWidget()),
+            Visibility(visible: viewUserClicked, child: ViewUsersWidget()),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget build(BuildContext context) {
     final ip = Provider.of<LoaderProvider>(context, listen: false).ip;
     final isLoading = Provider.of<LoaderProvider>(context).isLoading;
     final macAddress =
         Provider.of<LoaderProvider>(context, listen: false).macAddress;
+
+    if (widget.embedded) {
+      return _buildBody();
+    }
+
     return SafeArea(
       child: ModalProgressHUD(
         inAsyncCall: isLoading,
@@ -85,116 +202,7 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
             centerTitle: true,
           ),
-          body: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 25.0,
-              vertical: 25.0,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Visibility(
-                    visible: showAdd,
-                    child: Column(
-                      children: [
-                        ConfigTiles(
-                          tileIcon: Icons.add,
-                          title: 'Add Users',
-                          subtitle: 'Some subtitle',
-                          voidCallbackFunc: () {
-                            print('Hello World');
-                            setState(() {
-                              addUserClicked = !addUserClicked;
-                              showDel = !showDel;
-                              showView = !showView;
-                              showVerify = !showVerify;
-                            });
-
-                          },
-                        ),
-                        SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                  Visibility(
-                    visible: showDel,
-                    child: Column(
-                      children: [
-                        ConfigTiles(
-                          tileIcon: Icons.delete,
-                          title: 'Delete Users',
-                          subtitle: 'Some subtitle',
-                          voidCallbackFunc: () {
-                            setState(() {
-                              deleteUserClicked = !deleteUserClicked;
-                              showView = !showView;
-                              showVerify = !showVerify;
-                              showAdd = !showAdd;
-                            });
-                          },
-                        ),
-                        SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                  Visibility(
-                    visible: showVerify,
-                    child: Column(
-                      children: [
-                        ConfigTiles(
-                          tileIcon: Icons.remove_red_eye_rounded,
-                          title: 'Verify Users',
-                          subtitle: 'Some subtitle',
-                          voidCallbackFunc: () {
-                            setState(() {
-                              showAdd = !showAdd;
-                              showView = !showView;
-                              showDel = !showDel;
-                              verifyUserClicked = !verifyUserClicked;
-                            });
-                          },
-                        ),
-                        SizedBox(height: 20.0),
-                      ],
-                    ),
-                  ),
-                  Visibility(
-                    visible: showView,
-                    child: Column(
-                      children: [
-                        ConfigTiles(
-                          tileIcon: Icons.people_alt,
-                          title: 'View Users',
-                          subtitle: 'Some subtitle',
-                          voidCallbackFunc: () {
-                            setState(() {
-                              showVerify = !showVerify;
-                              showDel = !showDel;
-                              showAdd = !showAdd;
-                              viewUserClicked = !viewUserClicked;
-                            });
-                            if (webSocketSingleton.channel != null) {
-                              print('Sent: View Users');
-                            } else {
-                              print('Channel is not connected');
-                            }
-                          },
-                        ),
-                        SizedBox(height: 20.0),
-                      ],
-                    ),
-                  ),
-                  Visibility(visible: addUserClicked, child: AddUserWidget()),
-                  Visibility(visible: deleteUserClicked, child: DeleteUserWidget()),
-                  Visibility(visible: verifyUserClicked, child: VerifyUserWidget()),
-                  Visibility(visible: viewUserClicked,child: ViewUsersWidget()),
-
-                ],
-              ),
-            ),
-          ),
+          body: _buildBody(),
         ),
       ),
     );

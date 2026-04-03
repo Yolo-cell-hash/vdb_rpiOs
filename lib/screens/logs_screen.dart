@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:vdp_poc_new/widgets/activity_log_card.dart';
 
 class LogsScreen extends StatefulWidget {
-  const LogsScreen({super.key});
+  final bool embedded;
+  const LogsScreen({super.key, this.embedded = false});
 
   @override
   State<LogsScreen> createState() => _LogsScreenState();
@@ -175,8 +176,54 @@ class _LogsScreenState extends State<LogsScreen> {
     }
   }
 
+  Widget _buildBody() {
+    return _isInitialLoading
+        ? _buildLoadingState()
+        : _allLogs.isEmpty
+        ? _buildEmptyState()
+        : RefreshIndicator(
+      onRefresh: _refreshLogs,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(
+          top: 8,
+          bottom: 20,
+          left: 0,
+          right: 0,
+        ),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: _allLogs.length + 1,
+        itemBuilder: (context, index) {
+          if (index == _allLogs.length) {
+            return _buildLoadMoreButton();
+          }
+
+          final doc = _allLogs[index];
+          final data = doc.data() as Map<String, dynamic>;
+
+          final String activity =
+              data['message '] as String? ?? 'Unknown Activity';
+          final int statusCode = _getStatusCode(activity);
+          final String timeStamp =
+          _formatTimestamp(data['timestamp'] as String?);
+          final Uint8List? imageData =
+          _decodeBase64Image(data['image'], doc.id);
+
+          return ActivityLogCard(
+            activity: activity,
+            time: timeStamp,
+            statusCode: statusCode,
+            imageData: imageData,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      return _buildBody();
+    }
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 90,
@@ -218,47 +265,7 @@ class _LogsScreenState extends State<LogsScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: _isInitialLoading // Check initial loading state
-          ? _buildLoadingState() // Show loading indicator
-          : _allLogs.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
-        onRefresh: _refreshLogs,
-        child: ListView.builder(
-          padding: const EdgeInsets.only(
-            top: 8,
-            bottom: 20,
-            left: 0,
-            right: 0,
-          ),
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: _allLogs.length + 1, // +1 for load more button
-          itemBuilder: (context, index) {
-            // Load more button at the end
-            if (index == _allLogs.length) {
-              return _buildLoadMoreButton();
-            }
-
-            final doc = _allLogs[index];
-            final data = doc.data() as Map<String, dynamic>;
-
-            final String activity =
-                data['message '] as String? ?? 'Unknown Activity';
-            final int statusCode = _getStatusCode(activity);
-            final String timeStamp =
-            _formatTimestamp(data['timestamp'] as String?);
-            final Uint8List? imageData =
-            _decodeBase64Image(data['image'], doc.id);
-
-            return ActivityLogCard(
-              activity: activity,
-              time: timeStamp,
-              statusCode: statusCode,
-              imageData: imageData,
-            );
-          },
-        ),
-      ),
+      body: _buildBody(),
     );
   }
 
