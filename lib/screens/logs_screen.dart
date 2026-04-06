@@ -225,6 +225,7 @@ class _LogsScreenState extends State<LogsScreen> {
       return _buildBody();
     }
     return Scaffold(
+      backgroundColor: Color(0xFFF7F9FB),
       appBar: AppBar(
         toolbarHeight: 90,
         flexibleSpace: Container(
