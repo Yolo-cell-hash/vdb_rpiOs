@@ -568,7 +568,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget>
 
                 try {
                   // stop the stream first
-                  DatabaseReference sendFeed = database.ref('/dev_en   v/sendFeed');
+                  DatabaseReference sendFeed = database.ref('/$fbPath/sendFeed');
                   await sendFeed.set(false);
 
                   DatabaseReference feed = database.ref('/$fbPath/verifyUsers');
