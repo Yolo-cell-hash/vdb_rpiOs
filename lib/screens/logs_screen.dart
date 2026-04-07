@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:vdp_poc_new/widgets/activity_log_card.dart';
+
+import '../utils/loader_provider.dart';
 
 class LogsScreen extends StatefulWidget {
   final bool embedded;
@@ -16,6 +20,7 @@ class _LogsScreenState extends State<LogsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final int _logsPerPage = 20;
   final Map<String, Uint8List?> _imageCache = {};
+  late String logsPath;
 
   List<DocumentSnapshot> _allLogs = [];
   DocumentSnapshot? _lastDocument;
@@ -30,13 +35,14 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   Future<void> _loadInitialLogs() async {
+    logsPath = Provider.of<LoaderProvider>(context, listen: false).logsPath;
     setState(() {
       _isInitialLoading = true;
     });
 
     try {
       final querySnapshot = await _firestore
-          .collection('logs')
+          .collection(logsPath)
           .orderBy('timestamp', descending: true)
           .limit(_logsPerPage)
           .get();
@@ -62,6 +68,7 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   Future<void> _loadMoreLogs() async {
+    logsPath = Provider.of<LoaderProvider>(context, listen: false).logsPath;
     if (_isLoadingMore || !_hasMoreData || _lastDocument == null) return;
 
     setState(() {
@@ -70,7 +77,7 @@ class _LogsScreenState extends State<LogsScreen> {
 
     try {
       final querySnapshot = await _firestore
-          .collection('logs')
+          .collection(logsPath)
           .orderBy('timestamp', descending: true)
           .startAfterDocument(_lastDocument!)
           .limit(_logsPerPage)

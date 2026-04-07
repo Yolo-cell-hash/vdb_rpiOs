@@ -25,6 +25,7 @@ class _DeviceEntry {
   final String deviceName;
   final int streamId;
   final String img_path;
+  final String log_path;
 
   const _DeviceEntry({
     required this.title,
@@ -33,6 +34,7 @@ class _DeviceEntry {
     required this.deviceName,
     required this.streamId,
     required this.img_path,
+    required this.log_path,
   });
 }
 
@@ -60,6 +62,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Advantis IoT9',
       streamId: 7,
       img_path: 'images/front_img.png',
+      log_path: 'logs',
     ),
     _DeviceEntry(
       title: 'GSLD1 VDB',
@@ -68,6 +71,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Advantis GSLD1',
       streamId: 8,
       img_path: 'images/back_img.png',
+      log_path: 'gsld1_vdb_env',
     ),
     _DeviceEntry(
       title: 'VDB Module',
@@ -76,6 +80,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Standard VDB',
       streamId: 9,
       img_path: 'images/garage_img.png',
+      log_path: 'standard_vdb_env'
     ),
     _DeviceEntry(
       title: 'Dev VDB Module 1',
@@ -84,6 +89,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Dev VDB Module 1',
       streamId: 10,
       img_path: 'images/interior.png',
+      log_path: 'dev_vdb_env1'
     ),
     _DeviceEntry(
       title: 'Dev VDB Module 2',
@@ -92,6 +98,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Dev VDB Module 2',
       streamId: 11,
       img_path: 'images/front_img.png',
+      log_path: 'dev_vdb_env2'
     ),
   ];
 
@@ -120,6 +127,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
     loader.setDeviceName(device.deviceName);
     loader.setStreamId(device.streamId);
     loader.setFirebasePath(device.fbPath);
+    loader.setLogsPath(device.log_path);
 
     Navigator.push(
       context,

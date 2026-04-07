@@ -82,6 +82,7 @@ class _LandingScreenState extends State<LandingScreen>
   // ─── Recent events from Firestore ───
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> _recentLogs = [];
+  late String logsPath;
   bool _isLoadingEvents = true;
 
   // ─── Surveillance mode state (from ConnectedScreen) ───
@@ -548,9 +549,10 @@ class _LandingScreenState extends State<LandingScreen>
   // ═════════════════════════════════════════════════════════════════
 
   Future<void> _loadRecentEvents() async {
+    logsPath = Provider.of<LoaderProvider>(context, listen: false).logsPath;
     try {
       final querySnapshot = await _firestore
-          .collection('logs')
+          .collection(logsPath)
           .orderBy('timestamp', descending: true)
           .limit(3)
           .get();
