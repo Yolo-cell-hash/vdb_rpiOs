@@ -87,7 +87,6 @@ class FbUtils {
   Future<void> fbPushNotification() async {
     final firebaseMessaging = FirebaseMessaging.instance;
     await firebaseMessaging.requestPermission();
-    FirebaseMessaging.onBackgroundMessage(handler);
   }
 
   Future<String?> readIpType(String fbPath) async {
