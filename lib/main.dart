@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:vdp_poc_new/screens/splash_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -93,32 +96,85 @@ String? _extractPayloadValue(String payload, String key) {
 // multiple simultaneous alerts to coexist.
 const int _kForegroundNotifId = 1001;
 
-// ─── Show a local notification (foreground only) ───
+// ─── Download image to a temp file for BigPictureStyleInformation ───
 //
-// FIX: Title and body now prefer the FCM `notification` block fields
-// (passed in explicitly by the caller) so the displayed text always
-// matches what the cloud sent, rather than falling back to data fields
-// which may be absent or differently formatted.
+// flutter_local_notifications requires a local file path for big-picture
+// images — it cannot load from a URL directly. We download the image,
+// save it to the app's temp directory, and pass the path to the plugin.
+// Returns null if the download fails so the caller can fall back gracefully.
+Future<String?> _downloadImageToTemp(String imageUrl) async {
+  try {
+    final response = await http
+        .get(Uri.parse(imageUrl))
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/vdb_notif_image.jpg');
+    await file.writeAsBytes(response.bodyBytes);
+    return file.path;
+  } catch (e) {
+    debugPrint('Image download failed: $e');
+    return null;
+  }
+}
+
+// ─── Show a local notification with optional image (foreground only) ───
+//
+// When an imageUrl is supplied, the image is downloaded and shown using
+// BigPictureStyleInformation — matching the rich notification that Android
+// auto-displays in background/killed states from the FCM `notification.image`
+// field. Falls back to a plain text notification if the download fails.
 @pragma('vm:entry-point')
 Future<void> _showNotification(
     String title,
     String body, {
       String? payload,
+      String? imageUrl,
       String channelId = 'vdb_alerts',
       String channelName = 'VDB Alerts',
     }) async {
-  final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    channelId,
-    channelName,
-    importance: Importance.max,
-    priority: Priority.high,
-    color: const Color(0xFF2196F3),
-  );
+  AndroidNotificationDetails androidDetails;
+
+  if (imageUrl != null && imageUrl.isNotEmpty) {
+    final imagePath = await _downloadImageToTemp(imageUrl);
+    if (imagePath != null) {
+      final bigPicture = BigPictureStyleInformation(
+        FilePathAndroidBitmap(imagePath),
+        contentTitle: title,
+        summaryText: body,
+        hideExpandedLargeIcon: false,
+      );
+      androidDetails = AndroidNotificationDetails(
+        channelId,
+        channelName,
+        importance: Importance.max,
+        priority: Priority.high,
+        color: const Color(0xFF2196F3),
+        styleInformation: bigPicture,
+      );
+    } else {
+      // Image download failed — fall back to plain notification
+      androidDetails = AndroidNotificationDetails(
+        channelId,
+        channelName,
+        importance: Importance.max,
+        priority: Priority.high,
+        color: const Color(0xFF2196F3),
+      );
+    }
+  } else {
+    androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      importance: Importance.max,
+      priority: Priority.high,
+      color: const Color(0xFF2196F3),
+    );
+  }
+
   final NotificationDetails details = NotificationDetails(android: androidDetails);
 
-  // FIX: Use a fixed ID (_kForegroundNotifId) instead of 0 so this
-  // foreground notification does not collide with the ID used by
-  // handleNotificationResponse's cancel() call.
   await flutterLocalNotificationsPlugin.show(
     _kForegroundNotifId,
     title,
@@ -276,10 +332,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ?? message.data['body']
           ?? (config != null ? 'Tap to view ${config.title}' : 'Tap to open');
 
+      // The Lambda puts the S3 image URL in both:
+      //   - notification.image  → surfaced by FCM SDK as notification?.android?.imageUrl
+      //   - data['image_url']   → always present as a raw string
+      // We prefer the SDK field; fall back to the data field.
+      final imageUrl = message.notification?.android?.imageUrl
+          ?? message.data['image_url'] as String?;
+
       _showNotification(
         title,
         body,
         payload: source != null ? 'source=$source' : null,
+        imageUrl: imageUrl,
         channelId: 'vdb_alerts',
         channelName: 'VDB Alerts',
       );
