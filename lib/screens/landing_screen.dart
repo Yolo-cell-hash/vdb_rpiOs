@@ -117,6 +117,12 @@ class _LandingScreenState extends State<LandingScreen>
   StreamSubscription? _janusMessageSub;
   StreamSubscription? _janusStreamSub;
 
+  // ─── WiFi details (real-time from Firebase) ───
+  String _wifiDeviceName = '';
+  String _wifiIpAddress = '';
+  bool _wifiIsConnected = false;
+  StreamSubscription? _wifiDetailsSub;
+
   // ═════════════════════════════════════════════════════════════════
   // LIFECYCLE (PRESERVED)
   // ═════════════════════════════════════════════════════════════════
@@ -135,15 +141,243 @@ class _LandingScreenState extends State<LandingScreen>
     );
 
     _initializeDevice();
+    _listenToWifiDetails();
   }
 
   @override
   void dispose() {
+    _wifiDetailsSub?.cancel();
     _disposeLiveView();
     webSocketSingleton.close();
     fbUtils.cancelBackgroundListen();
     _animationController?.dispose();
     super.dispose();
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // WIFI DETAILS — Real-time listener
+  // ═════════════════════════════════════════════════════════════════
+
+  void _listenToWifiDetails() {
+    final fbPath = widget.fb_path;
+    if (fbPath == null || fbPath.isEmpty) return;
+
+    final ref = fbUtils.database.ref('/$fbPath/WiFi_details');
+    _wifiDetailsSub = ref.onValue.listen((DatabaseEvent event) {
+      if (!mounted) return;
+      final snapshot = event.snapshot;
+      if (snapshot.exists && snapshot.value != null) {
+        _parseWifiDetails(snapshot.value.toString());
+      } else {
+        setState(() {
+          _wifiDeviceName = '';
+          _wifiIsConnected = false;
+        });
+      }
+    }, onError: (error) {
+      print('Error listening to WiFi_details: $error');
+      if (mounted) {
+        setState(() {
+          _wifiDeviceName = '';
+          _wifiIsConnected = false;
+        });
+      }
+    });
+  }
+
+  /// Parses the WiFi_details string format:
+  /// "('OPCE5', 'Connected') - 10.245.80.231"
+  void _parseWifiDetails(String raw) {
+    String deviceName = '';
+    String ipAddress = '';
+    bool isConnected = false;
+
+    try {
+      // Extract the part inside parentheses: ('OPCE5', 'Connected')
+      final parenMatch = RegExp(r"\(([^)]+)\)").firstMatch(raw);
+      if (parenMatch != null) {
+        final inner = parenMatch.group(1)!; // "'OPCE5', 'Connected'"
+        final parts = inner.split(',');
+        if (parts.isNotEmpty) {
+          deviceName = parts[0].trim().replaceAll("'", '');
+        }
+        if (parts.length > 1) {
+          final status = parts[1].trim().replaceAll("'", '').toLowerCase();
+          isConnected = status == 'connected';
+        }
+      }
+
+      // Extract IP after the dash: " - 10.245.80.231"
+      final dashIndex = raw.lastIndexOf('-');
+      if (dashIndex != -1 && dashIndex + 1 < raw.length) {
+        ipAddress = raw.substring(dashIndex + 1).trim();
+      }
+    } catch (e) {
+      print('Error parsing WiFi_details: $e');
+    }
+
+    setState(() {
+      _wifiDeviceName = deviceName;
+      _wifiIpAddress = ipAddress;
+      _wifiIsConnected = isConnected;
+    });
+  }
+
+  void _showWifiDetailsPopup() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: _kSurfaceContainerLowest,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // WiFi icon with status glow
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: _wifiIsConnected
+                        ? [const Color(0xFF00C853), const Color(0xFF69F0AE)]
+                        : [const Color(0xFFD32F2F), const Color(0xFFEF9A9A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_wifiIsConnected ? const Color(0xFF00C853) : const Color(0xFFD32F2F))
+                          .withOpacity(0.3),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _wifiIsConnected ? Icons.wifi : Icons.wifi_off,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Status text
+              Text(
+                _wifiIsConnected ? 'Connected' : 'Disconnected',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: _wifiIsConnected ? const Color(0xFF00C853) : const Color(0xFFD32F2F),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Device name row
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _kSurfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.router_outlined, color: _kOutline, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Network',
+                            style: GoogleFonts.manrope(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: _kOutline,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _wifiDeviceName.isNotEmpty ? _wifiDeviceName : 'Unknown',
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _kOnSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              // IP address row
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _kSurfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.language_outlined, color: _kOutline, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'IP Address',
+                            style: GoogleFonts.manrope(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: _kOutline,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _wifiIpAddress.isNotEmpty ? _wifiIpAddress : '--',
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _kOnSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Close button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    backgroundColor: _kSurfaceContainerLow,
+                  ),
+                  child: Text(
+                    'Close',
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: _kOnSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1319,26 +1553,41 @@ class _LandingScreenState extends State<LandingScreen>
             // Settings
 
             const SizedBox(width: 10),
-            // Profile avatar
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 4,
+            // WiFi status indicator
+            GestureDetector(
+              onTap: _showWifiDetailsPopup,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_wifiIsConnected ? const Color(0xFF00C853) : const Color(0xFFD32F2F))
+                          .withOpacity(0.18),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 4,
+                    ),
+                  ],
+                  gradient: LinearGradient(
+                    colors: _wifiIsConnected
+                        ? [const Color(0xFF00C853), const Color(0xFF69F0AE)]
+                        : [const Color(0xFFD32F2F), const Color(0xFFEF9A9A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-                gradient: const LinearGradient(
-                  colors: [_kPrimary, _kPrimaryLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                ),
+                child: Icon(
+                  _wifiIsConnected ? Icons.wifi : Icons.wifi_off,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              child: const Icon(Icons.person, color: Colors.white, size: 20),
             ),
           ],
         ),
