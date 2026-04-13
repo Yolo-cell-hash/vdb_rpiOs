@@ -49,7 +49,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget>
   );
 
   void _watchStream() async {
-    final streamId = 7;
+    final streamId = Provider.of<LoaderProvider>(context, listen: false).streamId;
     await _client.watchStream(streamId);
     print(
       'Wacth Stream Called ---------------------------------------------------------------',
