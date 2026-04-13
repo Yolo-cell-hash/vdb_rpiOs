@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vdp_poc_new/utils/loader_provider.dart';
 
 class DeleteUsersDropdownWidget extends StatefulWidget {
   final ValueChanged<Set<String>> onSelectionChanged;
@@ -21,7 +23,7 @@ class DeleteUsersDropdownWidget extends StatefulWidget {
 
 class _DeleteUsersDropdownWidgetState extends State<DeleteUsersDropdownWidget> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  late final Stream<QuerySnapshot> _usersStream;
+  late Stream<QuerySnapshot> _usersStream;
 
   final TextEditingController _searchController = TextEditingController();
   final Set<String> _selectedUserIds = {};
@@ -30,14 +32,20 @@ class _DeleteUsersDropdownWidgetState extends State<DeleteUsersDropdownWidget> {
 
   String _searchQuery = '';
   bool _selectAll = false;
+  bool _streamInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _usersStream = _firestore
-        .collection('users')
-        .where(FieldPath.documentId, isNotEqualTo: 'no_of_users')
-        .snapshots();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_streamInitialized) {
+      final collectionName =
+          Provider.of<LoaderProvider>(context, listen: false).usersCollection;
+      _usersStream = _firestore
+          .collection(collectionName)
+          .where(FieldPath.documentId, isNotEqualTo: 'no_of_users')
+          .snapshots();
+      _streamInitialized = true;
+    }
   }
 
   Uint8List? _decodeBase64Image(dynamic encodedImage) {

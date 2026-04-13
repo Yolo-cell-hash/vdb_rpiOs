@@ -76,8 +76,8 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget>
     loaderProvider.showLoader();
     try {
       await _client.disconnect();
-      final sendFeedRef = database.ref('/$fbPath/sendFeed');
-      await sendFeedRef.set(false);
+      final send_feed_androidRef = database.ref('/$fbPath/send_feed_android');
+      await send_feed_androidRef.set(false);
     } catch (e) {
       print('Error during cancel/back cleanup: $e');
     } finally {
@@ -131,7 +131,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget>
         fb_path = Provider.of<LoaderProvider>(context, listen: false).firebasePath;
 
         FirebaseDatabase database = fbUtils.database;
-        DatabaseReference verifyUser = database.ref('/${fb_path}/sendFeed');
+        DatabaseReference verifyUser = database.ref('/${fb_path}/send_feed_android');
         await verifyUser.set(true);
 
         ip = Provider.of<LoaderProvider>(context, listen: false).ip;
@@ -568,8 +568,8 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget>
 
                 try {
                   // stop the stream first
-                  DatabaseReference sendFeed = database.ref('/$fbPath/sendFeed');
-                  await sendFeed.set(false);
+                  DatabaseReference send_feed_android = database.ref('/$fbPath/send_feed_android');
+                  await send_feed_android.set(false);
 
                   DatabaseReference feed = database.ref('/$fbPath/verifyUsers');
                   await feed.set(true);
@@ -676,7 +676,7 @@ class _VerifyUserWidgetState extends State<VerifyUserWidget>
     return PopScope(
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) {
-          // Keep existing behavior: disconnect + set sendFeed=false on back
+          // Keep existing behavior: disconnect + set send_feed_android=false on back
           await _stopFeedAndDisconnect(popAfter: false);
         }
       },

@@ -26,6 +26,7 @@ class _DeviceEntry {
   final int streamId;
   final String img_path;
   final String log_path;
+  final String usersCollection;
 
   const _DeviceEntry({
     required this.title,
@@ -35,6 +36,7 @@ class _DeviceEntry {
     required this.streamId,
     required this.img_path,
     required this.log_path,
+    required this.usersCollection,
   });
 }
 
@@ -63,6 +65,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       streamId: 7,
       img_path: 'images/front_img.png',
       log_path: 'logs',
+      usersCollection: 'users',
     ),
     _DeviceEntry(
       title: 'GSLD1 VDB',
@@ -72,6 +75,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       streamId: 8,
       img_path: 'images/back_img.png',
       log_path: 'gsld1_vdb_env',
+      usersCollection: 'gsld1_vdb_env_users',
     ),
     _DeviceEntry(
       title: 'VDB Module',
@@ -80,7 +84,8 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Standard VDB',
       streamId: 9,
       img_path: 'images/garage_img.png',
-      log_path: 'standard_vdb_env'
+      log_path: 'standard_vdb_env',
+      usersCollection: 'standard_vdb_env',
     ),
     _DeviceEntry(
       title: 'Dev VDB Module 1',
@@ -89,7 +94,8 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Dev VDB Module 1',
       streamId: 10,
       img_path: 'images/interior.png',
-      log_path: 'dev_vdb_env1'
+      log_path: 'dev_vdb_env1',
+      usersCollection: 'dev_vdb_module1_users',
     ),
     _DeviceEntry(
       title: 'Dev VDB Module 2',
@@ -98,7 +104,8 @@ class _DevicesListScreenState extends State<DevicesListScreen>
       deviceName: 'Dev VDB Module 2',
       streamId: 11,
       img_path: 'images/front_img.png',
-      log_path: 'dev_vdb_env2'
+      log_path: 'dev_vdb_env2',
+      usersCollection: 'dev_vdb_module2_users',
     ),
   ];
 
@@ -128,6 +135,7 @@ class _DevicesListScreenState extends State<DevicesListScreen>
     loader.setStreamId(device.streamId);
     loader.setFirebasePath(device.fbPath);
     loader.setLogsPath(device.log_path);
+    loader.setUsersCollection(device.usersCollection);
 
     Navigator.push(
       context,

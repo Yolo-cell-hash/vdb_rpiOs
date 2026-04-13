@@ -223,7 +223,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                 loaderProvider.showLoader();
                 await _client.disconnect();
                 DatabaseReference userResponseFieldRef = database.ref(
-                  '/${fb_path}/sendFeed',
+                  '/${fb_path}/send_feed_android',
                 );
                 try {
                   await userResponseFieldRef.set(false);
@@ -254,7 +254,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                       Navigator.pop(context);
                       await _client.disconnect();
                       DatabaseReference userResponseFieldRef = database.ref(
-                        '/${fb_path}/sendFeed',
+                        '/${fb_path}/send_feed_android',
                       );
                       try {
                         await userResponseFieldRef.set(false);
@@ -318,7 +318,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                       _watchStream();
 
                                       DatabaseReference userResponseFieldRef =
-                                      database.ref('/${fb_path}/sendFeed');
+                                      database.ref('/${fb_path}/send_feed_android');
                                       try {
                                         await userResponseFieldRef.set(true);
                                         print(
@@ -336,7 +336,7 @@ class _VideoStreamScreenState extends State<VideoStreamScreen> {
                                     onCancelBtnTap: () async {
                                       Navigator.pop(context);
                                       DatabaseReference userResponseFieldRef =
-                                      database.ref('/${fb_path}/sendFeed');
+                                      database.ref('/${fb_path}/send_feed_android');
 
                                       try {
                                         await userResponseFieldRef.set(true);

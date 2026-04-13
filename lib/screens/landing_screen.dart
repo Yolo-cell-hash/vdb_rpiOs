@@ -163,26 +163,29 @@ class _LandingScreenState extends State<LandingScreen>
     if (fbPath == null || fbPath.isEmpty) return;
 
     final ref = fbUtils.database.ref('/$fbPath/WiFi_details');
-    _wifiDetailsSub = ref.onValue.listen((DatabaseEvent event) {
-      if (!mounted) return;
-      final snapshot = event.snapshot;
-      if (snapshot.exists && snapshot.value != null) {
-        _parseWifiDetails(snapshot.value.toString());
-      } else {
-        setState(() {
-          _wifiDeviceName = '';
-          _wifiIsConnected = false;
-        });
-      }
-    }, onError: (error) {
-      print('Error listening to WiFi_details: $error');
-      if (mounted) {
-        setState(() {
-          _wifiDeviceName = '';
-          _wifiIsConnected = false;
-        });
-      }
-    });
+    _wifiDetailsSub = ref.onValue.listen(
+      (DatabaseEvent event) {
+        if (!mounted) return;
+        final snapshot = event.snapshot;
+        if (snapshot.exists && snapshot.value != null) {
+          _parseWifiDetails(snapshot.value.toString());
+        } else {
+          setState(() {
+            _wifiDeviceName = '';
+            _wifiIsConnected = false;
+          });
+        }
+      },
+      onError: (error) {
+        print('Error listening to WiFi_details: $error');
+        if (mounted) {
+          setState(() {
+            _wifiDeviceName = '';
+            _wifiIsConnected = false;
+          });
+        }
+      },
+    );
   }
 
   /// Parses the WiFi_details string format:
@@ -226,157 +229,186 @@ class _LandingScreenState extends State<LandingScreen>
   void _showWifiDetailsPopup() {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: _kSurfaceContainerLowest,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // WiFi icon with status glow
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: _wifiIsConnected
-                        ? [const Color(0xFF00C853), const Color(0xFF69F0AE)]
-                        : [const Color(0xFFD32F2F), const Color(0xFFEF9A9A)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            backgroundColor: _kSurfaceContainerLowest,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // WiFi icon with status glow
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors:
+                            _wifiIsConnected
+                                ? [
+                                  const Color(0xFF00C853),
+                                  const Color(0xFF69F0AE),
+                                ]
+                                : [
+                                  const Color(0xFFD32F2F),
+                                  const Color(0xFFEF9A9A),
+                                ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_wifiIsConnected
+                                  ? const Color(0xFF00C853)
+                                  : const Color(0xFFD32F2F))
+                              .withOpacity(0.3),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _wifiIsConnected ? Icons.wifi : Icons.wifi_off,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (_wifiIsConnected ? const Color(0xFF00C853) : const Color(0xFFD32F2F))
-                          .withOpacity(0.3),
-                      blurRadius: 16,
-                      spreadRadius: 2,
+                  const SizedBox(height: 20),
+                  // Status text
+                  Text(
+                    _wifiIsConnected ? 'Connected' : 'Disconnected',
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      color:
+                          _wifiIsConnected
+                              ? const Color(0xFF00C853)
+                              : const Color(0xFFD32F2F),
                     ),
-                  ],
-                ),
-                child: Icon(
-                  _wifiIsConnected ? Icons.wifi : Icons.wifi_off,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Status text
-              Text(
-                _wifiIsConnected ? 'Connected' : 'Disconnected',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  color: _wifiIsConnected ? const Color(0xFF00C853) : const Color(0xFFD32F2F),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Device name row
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: _kSurfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.router_outlined, color: _kOutline, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Network',
-                            style: GoogleFonts.manrope(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: _kOutline,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _wifiDeviceName.isNotEmpty ? _wifiDeviceName : 'Unknown',
-                            style: GoogleFonts.manrope(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _kOnSurface,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Device name row
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              // IP address row
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: _kSurfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.language_outlined, color: _kOutline, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'IP Address',
-                            style: GoogleFonts.manrope(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: _kOutline,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _wifiIpAddress.isNotEmpty ? _wifiIpAddress : '--',
-                            style: GoogleFonts.manrope(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _kOnSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Close button
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
+                    decoration: BoxDecoration(
+                      color: _kSurfaceContainerLow,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    backgroundColor: _kSurfaceContainerLow,
-                  ),
-                  child: Text(
-                    'Close',
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: _kOnSurface,
+                    child: Row(
+                      children: [
+                        Icon(Icons.router_outlined, color: _kOutline, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Network',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: _kOutline,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _wifiDeviceName.isNotEmpty
+                                    ? _wifiDeviceName
+                                    : 'Unknown',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kOnSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  // IP address row
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _kSurfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.language_outlined,
+                          color: _kOutline,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'IP Address',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: _kOutline,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _wifiIpAddress.isNotEmpty
+                                    ? _wifiIpAddress
+                                    : '--',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kOnSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Close button
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: _kSurfaceContainerLow,
+                      ),
+                      child: Text(
+                        'Close',
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: _kOnSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -417,7 +449,10 @@ class _LandingScreenState extends State<LandingScreen>
     if (fbPath == null || fbPath.isEmpty) return;
 
     try {
-      final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+      final loaderProvider = Provider.of<LoaderProvider>(
+        context,
+        listen: false,
+      );
       DatabaseReference survaillanceRef = fbUtils.database.ref(
         '/$fbPath/survailanceModeEnabled',
       );
@@ -662,35 +697,36 @@ class _LandingScreenState extends State<LandingScreen>
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => WifiDisconnectedScreen(
-                  onRetry: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LandingScreen(),
-                      ),
-                    );
-                  },
-                  onSkip: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LandingScreen(),
-                      ),
-                    ).then((_) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          setState(() {
-                            _isSkipped = true;
-                            isCheckingWifi = false;
-                            showSuccessAnimation = false;
-                            showFailureAnimation = false;
+                builder:
+                    (context) => WifiDisconnectedScreen(
+                      onRetry: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LandingScreen(),
+                          ),
+                        );
+                      },
+                      onSkip: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LandingScreen(),
+                          ),
+                        ).then((_) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              setState(() {
+                                _isSkipped = true;
+                                isCheckingWifi = false;
+                                showSuccessAnimation = false;
+                                showFailureAnimation = false;
+                              });
+                            }
                           });
-                        }
-                      });
-                    });
-                  },
-                ),
+                        });
+                      },
+                    ),
               ),
             );
           }
@@ -732,35 +768,36 @@ class _LandingScreenState extends State<LandingScreen>
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => WifiDisconnectedScreen(
-                onRetry: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LandingScreen(),
-                    ),
-                  );
-                },
-                onSkip: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LandingScreen(),
-                    ),
-                  ).then((_) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        setState(() {
-                          _isSkipped = true;
-                          isCheckingWifi = false;
-                          showSuccessAnimation = false;
-                          showFailureAnimation = false;
+              builder:
+                  (context) => WifiDisconnectedScreen(
+                    onRetry: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LandingScreen(),
+                        ),
+                      );
+                    },
+                    onSkip: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LandingScreen(),
+                        ),
+                      ).then((_) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _isSkipped = true;
+                              isCheckingWifi = false;
+                              showSuccessAnimation = false;
+                              showFailureAnimation = false;
+                            });
+                          }
                         });
-                      }
-                    });
-                  });
-                },
-              ),
+                      });
+                    },
+                  ),
             ),
           );
         }
@@ -785,25 +822,27 @@ class _LandingScreenState extends State<LandingScreen>
   Future<void> _loadRecentEvents() async {
     logsPath = Provider.of<LoaderProvider>(context, listen: false).logsPath;
     try {
-      final querySnapshot = await _firestore
-          .collection(logsPath)
-          .orderBy('timestamp', descending: true)
-          .limit(3)
-          .get();
+      final querySnapshot =
+          await _firestore
+              .collection(logsPath)
+              .orderBy('timestamp', descending: true)
+              .limit(3)
+              .get();
 
       if (mounted) {
         setState(() {
-          _recentLogs = querySnapshot.docs
-              .where((doc) => doc.id != 'no_of_logs')
-              .map((doc) {
-            final data = doc.data();
-            return {
-              'id': doc.id,
-              'message': data['message '] as String? ?? 'Unknown Activity',
-              'timestamp': data['timestamp'] as String? ?? '',
-              'image': data['image'],
-            };
-          }).toList();
+          _recentLogs =
+              querySnapshot.docs.where((doc) => doc.id != 'no_of_logs').map((
+                doc,
+              ) {
+                final data = doc.data();
+                return {
+                  'id': doc.id,
+                  'message': data['message '] as String? ?? 'Unknown Activity',
+                  'timestamp': data['timestamp'] as String? ?? '',
+                  'image': data['image'],
+                };
+              }).toList();
           _isLoadingEvents = false;
         });
       }
@@ -980,13 +1019,18 @@ class _LandingScreenState extends State<LandingScreen>
         _liveViewRenderersInitialized = true;
       }
 
-      final loaderProvider = Provider.of<LoaderProvider>(context, listen: false);
+      final loaderProvider = Provider.of<LoaderProvider>(
+        context,
+        listen: false,
+      );
       final ip = loaderProvider.ip;
       final streamId = loaderProvider.streamId;
       final fbPath = loaderProvider.firebasePath;
 
       if (ip.isEmpty) {
-        throw Exception('Device IP not available. Please check device connection.');
+        throw Exception(
+          'Device IP not available. Please check device connection.',
+        );
       }
 
       // Read IP type from Firebase
@@ -999,9 +1043,7 @@ class _LandingScreenState extends State<LandingScreen>
       }
 
       // Build WebSocket URL based on IP type
-      final wsUrl = ipType == 'IPv6'
-          ? 'ws://[$ip]:8188'
-          : 'ws://$ip:8188';
+      final wsUrl = ipType == 'IPv6' ? 'ws://[$ip]:8188' : 'ws://$ip:8188';
 
       setState(() => _liveViewStatus = 'Connecting to stream server...');
 
@@ -1040,13 +1082,13 @@ class _LandingScreenState extends State<LandingScreen>
       if (streamId != null) {
         await _janusClient!.watchStream(streamId);
 
-        // Set sendFeed to true in Firebase
+        // Set send_feed_android to true in Firebase
         final database = fbUtils.database;
-        DatabaseReference sendFeedRef = database.ref('/$fbPath/sendFeed');
+        DatabaseReference send_feed_androidRef = database.ref('/$fbPath/send_feed_android');
         try {
-          await sendFeedRef.set(true);
+          await send_feed_androidRef.set(true);
         } catch (e) {
-          print('Error setting sendFeed: $e');
+          print('Error setting send_feed_android: $e');
         }
 
         if (mounted) {
@@ -1085,16 +1127,18 @@ class _LandingScreenState extends State<LandingScreen>
     _lvHideControlsTimer?.cancel();
     _lvRecordingTimer?.cancel();
 
-    // Set sendFeed to false
+    // Set send_feed_android to false
     try {
-      final fbPath = widget.fb_path ?? Provider.of<LoaderProvider>(context, listen: false).firebasePath;
+      final fbPath =
+          widget.fb_path ??
+          Provider.of<LoaderProvider>(context, listen: false).firebasePath;
       if (fbPath.isNotEmpty && _janusClient != null) {
         final database = fbUtils.database;
-        DatabaseReference sendFeedRef = database.ref('/$fbPath/sendFeed');
-        await sendFeedRef.set(false);
+        DatabaseReference send_feed_androidRef = database.ref('/$fbPath/send_feed_android');
+        await send_feed_androidRef.set(false);
       }
     } catch (e) {
-      print('Error resetting sendFeed: $e');
+      print('Error resetting send_feed_android: $e');
     }
 
     // Disconnect Janus
@@ -1203,10 +1247,13 @@ class _LandingScreenState extends State<LandingScreen>
       setState(() => _lvRepaintBoundaryKey = repaintBoundaryKey);
       await Future.delayed(const Duration(milliseconds: 100));
 
-      RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!
-          .findRenderObject() as RenderRepaintBoundary;
+      RenderRepaintBoundary boundary =
+          repaintBoundaryKey.currentContext!.findRenderObject()
+              as RenderRepaintBoundary;
       ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       Uint8List imageBytes = byteData!.buffer.asUint8List();
 
       final result = await ImageGallerySaverPlus.saveImage(
@@ -1292,14 +1339,11 @@ class _LandingScreenState extends State<LandingScreen>
           _lvRecordingDuration = 0;
         });
 
-        _lvRecordingTimer = Timer.periodic(
-          const Duration(seconds: 1),
-          (timer) {
-            if (mounted) {
-              setState(() => _lvRecordingDuration++);
-            }
-          },
-        );
+        _lvRecordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (mounted) {
+            setState(() => _lvRecordingDuration++);
+          }
+        });
 
         QuickAlert.show(
           context: context,
@@ -1360,67 +1404,68 @@ class _LandingScreenState extends State<LandingScreen>
                   ) {
                     return ScaleTransition(scale: animation, child: child);
                   },
-                  child: showSuccessAnimation
-                      ? ScaleTransition(
-                          key: const ValueKey('success'),
-                          scale: _scaleAnimation!,
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
+                  child:
+                      showSuccessAnimation
+                          ? ScaleTransition(
+                            key: const ValueKey('success'),
+                            scale: _scaleAnimation!,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.green,
+                                size: 50,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.check,
-                              color: Colors.green,
-                              size: 50,
+                          )
+                          : showFailureAnimation
+                          ? ScaleTransition(
+                            key: const ValueKey('failure'),
+                            scale: _scaleAnimation!,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.red,
+                                size: 50,
+                              ),
+                            ),
+                          )
+                          : const SizedBox(
+                            key: ValueKey('loading'),
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                              strokeWidth: 4,
                             ),
                           ),
-                        )
-                      : showFailureAnimation
-                          ? ScaleTransition(
-                              key: const ValueKey('failure'),
-                              scale: _scaleAnimation!,
-                              child: Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.white.withOpacity(0.3),
-                                      blurRadius: 20,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                  size: 50,
-                                ),
-                              ),
-                            )
-                          : const SizedBox(
-                              key: ValueKey('loading'),
-                              width: 50,
-                              height: 50,
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                                strokeWidth: 4,
-                              ),
-                            ),
                 ),
                 const SizedBox(height: 30),
                 AnimatedSwitcher(
@@ -1429,8 +1474,8 @@ class _LandingScreenState extends State<LandingScreen>
                     showSuccessAnimation
                         ? 'Connected Successfully!'
                         : showFailureAnimation
-                            ? 'Connection Failed!'
-                            : 'Checking Device Connection...',
+                        ? 'Connection Failed!'
+                        : 'Checking Device Connection...',
                     key: ValueKey(
                       '$showSuccessAnimation-$showFailureAnimation',
                     ),
@@ -1550,8 +1595,8 @@ class _LandingScreenState extends State<LandingScreen>
               ),
             ),
             const Spacer(),
-            // Settings
 
+            // Settings
             const SizedBox(width: 10),
             // WiFi status indicator
             GestureDetector(
@@ -1564,7 +1609,9 @@ class _LandingScreenState extends State<LandingScreen>
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: (_wifiIsConnected ? const Color(0xFF00C853) : const Color(0xFFD32F2F))
+                      color: (_wifiIsConnected
+                              ? const Color(0xFF00C853)
+                              : const Color(0xFFD32F2F))
                           .withOpacity(0.18),
                       blurRadius: 8,
                       spreadRadius: 1,
@@ -1575,9 +1622,13 @@ class _LandingScreenState extends State<LandingScreen>
                     ),
                   ],
                   gradient: LinearGradient(
-                    colors: _wifiIsConnected
-                        ? [const Color(0xFF00C853), const Color(0xFF69F0AE)]
-                        : [const Color(0xFFD32F2F), const Color(0xFFEF9A9A)],
+                    colors:
+                        _wifiIsConnected
+                            ? [const Color(0xFF00C853), const Color(0xFF69F0AE)]
+                            : [
+                              const Color(0xFFD32F2F),
+                              const Color(0xFFEF9A9A),
+                            ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1683,8 +1734,11 @@ class _LandingScreenState extends State<LandingScreen>
                     return Container(
                       color: _kSurfaceContainerLow,
                       child: const Center(
-                        child: Icon(Icons.image_not_supported,
-                            size: 48, color: _kOutline),
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 48,
+                          color: _kOutline,
+                        ),
                       ),
                     );
                   },
@@ -1729,17 +1783,19 @@ class _LandingScreenState extends State<LandingScreen>
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isUnlocked
-                    ? [Colors.green.shade600, Colors.green.shade400]
-                    : [_kPrimary, _kPrimaryLight],
+                colors:
+                    isUnlocked
+                        ? [Colors.green.shade600, Colors.green.shade400]
+                        : [_kPrimary, _kPrimaryLight],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: (isUnlocked ? Colors.green : _kPrimary)
-                      .withOpacity(0.2),
+                  color: (isUnlocked ? Colors.green : _kPrimary).withOpacity(
+                    0.2,
+                  ),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1764,8 +1820,8 @@ class _LandingScreenState extends State<LandingScreen>
                   _isUnlocking
                       ? 'Unlocking...'
                       : isUnlocked
-                          ? 'Door Unlocked'
-                          : 'Unlock',
+                      ? 'Door Unlocked'
+                      : 'Unlock',
                   style: GoogleFonts.manrope(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -1832,7 +1888,11 @@ class _LandingScreenState extends State<LandingScreen>
             ),
             child: Column(
               children: [
-                Icon(Icons.history, size: 40, color: _kOutline.withOpacity(0.5)),
+                Icon(
+                  Icons.history,
+                  size: 40,
+                  color: _kOutline.withOpacity(0.5),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'No recent events',
@@ -1862,9 +1922,10 @@ class _LandingScreenState extends State<LandingScreen>
       decoration: BoxDecoration(
         color: _kSurfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
-        border: isLatest
-            ? const Border(left: BorderSide(color: _kPrimary, width: 4))
-            : null,
+        border:
+            isLatest
+                ? const Border(left: BorderSide(color: _kPrimary, width: 4))
+                : null,
       ),
       child: Row(
         children: [
@@ -1876,25 +1937,25 @@ class _LandingScreenState extends State<LandingScreen>
               color: _kSurfaceContainerLowest,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: _kOutlineVariant.withOpacity(0.1), width: 1),
+                color: _kOutlineVariant.withOpacity(0.1),
+                width: 1,
+              ),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 4,
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4),
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: imageBytes != null
-                ? Image.memory(imageBytes, fit: BoxFit.cover)
-                : Container(
-                    color: _kPrimary.withOpacity(0.1),
-                    child: Icon(
-                      Icons.notifications_active,
-                      color: _kPrimary,
-                      size: 22,
+            child:
+                imageBytes != null
+                    ? Image.memory(imageBytes, fit: BoxFit.cover)
+                    : Container(
+                      color: _kPrimary.withOpacity(0.1),
+                      child: Icon(
+                        Icons.notifications_active,
+                        color: _kPrimary,
+                        size: 22,
+                      ),
                     ),
-                  ),
           ),
           const SizedBox(width: 14),
           // Title & subtitle
@@ -1963,13 +2024,12 @@ class _LandingScreenState extends State<LandingScreen>
             color: _kSurfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-              ),
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
             ],
             border: Border.all(
-                color: _kOutlineVariant.withOpacity(0.1), width: 1),
+              color: _kOutlineVariant.withOpacity(0.1),
+              width: 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2083,9 +2143,10 @@ class _LandingScreenState extends State<LandingScreen>
 
   Widget _buildSurveillanceToggle() {
     return GestureDetector(
-      onTap: _isSurveillanceLoading
-          ? null
-          : () => _handleSurveillanceToggle(!_surveillanceEnabled),
+      onTap:
+          _isSurveillanceLoading
+              ? null
+              : () => _handleSurveillanceToggle(!_surveillanceEnabled),
       child: Opacity(
         opacity: _isSurveillanceLoading ? 0.7 : 1.0,
         child: Container(
@@ -2098,18 +2159,18 @@ class _LandingScreenState extends State<LandingScreen>
             children: [
               _isSurveillanceLoading
                   ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: _kPrimary,
-                      ),
-                    )
-                  : Icon(
-                      _surveillanceEnabled ? Icons.videocam : Icons.videocam_off,
-                      color: _surveillanceEnabled ? Colors.green : _kError,
-                      size: 22,
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: _kPrimary,
                     ),
+                  )
+                  : Icon(
+                    _surveillanceEnabled ? Icons.videocam : Icons.videocam_off,
+                    color: _surveillanceEnabled ? Colors.green : _kError,
+                    size: 22,
+                  ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -2127,14 +2188,15 @@ class _LandingScreenState extends State<LandingScreen>
                       _isSurveillanceLoading
                           ? 'Waiting for device...'
                           : _surveillanceEnabled
-                              ? 'Active'
-                              : 'Inactive',
+                          ? 'Active'
+                          : 'Inactive',
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: _isSurveillanceLoading
-                            ? _kOutline
-                            : _surveillanceEnabled
+                        color:
+                            _isSurveillanceLoading
+                                ? _kOutline
+                                : _surveillanceEnabled
                                 ? Colors.green
                                 : _kOutline,
                       ),
@@ -2149,17 +2211,19 @@ class _LandingScreenState extends State<LandingScreen>
                   width: 48,
                   height: 26,
                   decoration: BoxDecoration(
-                    color: _surveillanceEnabled
-                        ? Colors.green
-                        : const Color(0xFFE0E3E5),
+                    color:
+                        _surveillanceEnabled
+                            ? Colors.green
+                            : const Color(0xFFE0E3E5),
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: AnimatedAlign(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeInOut,
-                    alignment: _surveillanceEnabled
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
+                    alignment:
+                        _surveillanceEnabled
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                     child: Container(
                       width: 20,
                       height: 20,
@@ -2259,10 +2323,7 @@ class _LandingScreenState extends State<LandingScreen>
           const SizedBox(height: 8),
           Text(
             'Establishing secure connection...',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: _kOutline,
-            ),
+            style: GoogleFonts.inter(fontSize: 13, color: _kOutline),
           ),
         ],
       ),
@@ -2312,7 +2373,10 @@ class _LandingScreenState extends State<LandingScreen>
                 onTap: _retryLiveView,
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [_kPrimary, _kPrimaryLight],
@@ -2358,7 +2422,11 @@ class _LandingScreenState extends State<LandingScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.videocam_outlined, size: 64, color: _kOutline.withOpacity(0.4)),
+          Icon(
+            Icons.videocam_outlined,
+            size: 64,
+            color: _kOutline.withOpacity(0.4),
+          ),
           const SizedBox(height: 16),
           Text(
             'Live View',
@@ -2380,7 +2448,10 @@ class _LandingScreenState extends State<LandingScreen>
               onTap: _initLiveView,
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [_kPrimary, _kPrimaryLight],
@@ -2426,9 +2497,7 @@ class _LandingScreenState extends State<LandingScreen>
                 width: 12,
                 height: 12,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_kPrimary, _kPrimaryLight],
-                  ),
+                  gradient: LinearGradient(colors: [_kPrimary, _kPrimaryLight]),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -2446,7 +2515,10 @@ class _LandingScreenState extends State<LandingScreen>
               GestureDetector(
                 onTap: _disposeLiveView,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: _kError.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -2454,7 +2526,11 @@ class _LandingScreenState extends State<LandingScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.stop_circle_outlined, color: _kError, size: 16),
+                      Icon(
+                        Icons.stop_circle_outlined,
+                        color: _kError,
+                        size: 16,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Disconnect',
@@ -2504,7 +2580,8 @@ class _LandingScreenState extends State<LandingScreen>
                         child: RTCVideoView(
                           _remoteRenderer,
                           filterQuality: FilterQuality.high,
-                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                          objectFit:
+                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                           mirror: false,
                         ),
                       ),
@@ -2517,7 +2594,10 @@ class _LandingScreenState extends State<LandingScreen>
                         animate: true,
                         infinite: true,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: _kError,
                             borderRadius: BorderRadius.circular(4),
@@ -2554,7 +2634,10 @@ class _LandingScreenState extends State<LandingScreen>
                         top: 12,
                         left: 12,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black54,
                             borderRadius: BorderRadius.circular(4),
@@ -2562,11 +2645,18 @@ class _LandingScreenState extends State<LandingScreen>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.circle, color: Colors.red, size: 12),
+                              const Icon(
+                                Icons.circle,
+                                color: Colors.red,
+                                size: 12,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 _lvFormatDuration(_lvRecordingDuration),
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
                               ),
                             ],
                           ),
@@ -2583,14 +2673,19 @@ class _LandingScreenState extends State<LandingScreen>
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.fullscreen, color: Colors.white, size: 28),
+                            icon: const Icon(
+                              Icons.fullscreen,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => FullScreenVideoView(
-                                    renderer: _remoteRenderer,
-                                  ),
+                                  builder:
+                                      (_) => FullScreenVideoView(
+                                        renderer: _remoteRenderer,
+                                      ),
                                 ),
                               );
                             },
@@ -2606,31 +2701,42 @@ class _LandingScreenState extends State<LandingScreen>
           // ── Action Buttons ──
           Row(
             children: [
-              Expanded(child: _buildLvActionButton(
-                icon: Icons.lock_open_rounded,
-                label: 'Unlock Door',
-                gradient: _unlockStatus == 'Unlocked'
-                    ? [Colors.green.shade600, Colors.green.shade400]
-                    : [_kPrimary, _kPrimaryLight],
-                isLoading: _isUnlocking,
-                onTap: _isUnlocking ? null : _lvHandleUnlock,
-              )),
+              Expanded(
+                child: _buildLvActionButton(
+                  icon: Icons.lock_open_rounded,
+                  label: 'Unlock Door',
+                  gradient:
+                      _unlockStatus == 'Unlocked'
+                          ? [Colors.green.shade600, Colors.green.shade400]
+                          : [_kPrimary, _kPrimaryLight],
+                  isLoading: _isUnlocking,
+                  onTap: _isUnlocking ? null : _lvHandleUnlock,
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _buildLvActionButton(
-                icon: _lvIsRecording ? Icons.stop_rounded : Icons.fiber_manual_record,
-                label: _lvIsRecording ? 'Stop' : 'Record',
-                gradient: _lvIsRecording
-                    ? [_kError, _kError.withOpacity(0.8)]
-                    : [_kPrimary, _kPrimaryLight],
-                onTap: _lvHandleRecord,
-              )),
+              Expanded(
+                child: _buildLvActionButton(
+                  icon:
+                      _lvIsRecording
+                          ? Icons.stop_rounded
+                          : Icons.fiber_manual_record,
+                  label: _lvIsRecording ? 'Stop' : 'Record',
+                  gradient:
+                      _lvIsRecording
+                          ? [_kError, _kError.withOpacity(0.8)]
+                          : [_kPrimary, _kPrimaryLight],
+                  onTap: _lvHandleRecord,
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _buildLvActionButton(
-                icon: Icons.camera_alt_rounded,
-                label: 'Capture',
-                gradient: [_kPrimary, _kPrimaryLight],
-                onTap: _lvHandleCapture,
-              )),
+              Expanded(
+                child: _buildLvActionButton(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Capture',
+                  gradient: [_kPrimary, _kPrimaryLight],
+                  onTap: _lvHandleCapture,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -2775,23 +2881,24 @@ class _LandingScreenState extends State<LandingScreen>
           horizontal: isSelected ? 16 : 12,
           vertical: 6,
         ),
-        decoration: isSelected
-            ? BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_kPrimary, _kPrimaryLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kPrimary.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+        decoration:
+            isSelected
+                ? BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_kPrimary, _kPrimaryLight],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              )
-            : null,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                )
+                : null,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2807,8 +2914,7 @@ class _LandingScreenState extends State<LandingScreen>
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
-                color:
-                    isSelected ? Colors.white : _kGrayText.withOpacity(0.7),
+                color: isSelected ? Colors.white : _kGrayText.withOpacity(0.7),
               ),
             ),
           ],
@@ -2830,10 +2936,7 @@ class _LandingScreenState extends State<LandingScreen>
     return Scaffold(
       backgroundColor: _kSurface,
       body: Column(
-        children: [
-          _buildAppBar(),
-          Expanded(child: _getTabContent()),
-        ],
+        children: [_buildAppBar(), Expanded(child: _getTabContent())],
       ),
       bottomNavigationBar: _buildCustomBottomNav(),
     );

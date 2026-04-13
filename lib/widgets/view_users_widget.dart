@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
+import 'package:vdp_poc_new/utils/loader_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Design tokens (matching the HTML Tailwind config)
@@ -39,8 +41,10 @@ class _ViewUsersWidgetState extends State<ViewUsersWidget> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<QuerySnapshot> _getUsersStream() {
+    final collectionName =
+        Provider.of<LoaderProvider>(context, listen: false).usersCollection;
     return _firestore
-        .collection('users')
+        .collection(collectionName)
         .where(FieldPath.documentId, isNotEqualTo: 'no_of_users')
         .snapshots();
   }

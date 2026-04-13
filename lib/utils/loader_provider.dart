@@ -19,6 +19,7 @@ class LoaderProvider with ChangeNotifier {
   String _deviceName = '';
   String _firebasePath = '';
   String _logsPath = '';
+  String _usersCollection = 'users';
 
   dynamic _streanId;
   dynamic _otp ;
@@ -41,6 +42,7 @@ class LoaderProvider with ChangeNotifier {
   String get deviceName => _deviceName;
   String get firebasePath => _firebasePath;
   String get logsPath => _logsPath;
+  String get usersCollection => _usersCollection;
 
   dynamic get streamId => _streanId;
   dynamic get otp => _otp;
@@ -92,6 +94,11 @@ class LoaderProvider with ChangeNotifier {
 
   void setLogsPath(String newValue){
     _logsPath = newValue;
+    notifyListeners();
+  }
+
+  void setUsersCollection(String newValue) {
+    _usersCollection = newValue;
     notifyListeners();
   }
 

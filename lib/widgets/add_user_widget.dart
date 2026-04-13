@@ -143,7 +143,7 @@ class _AddUserWidgetState extends State<AddUserWidget>
           loaderProvider.showLoader();
           await _client.disconnect();
           DatabaseReference userResponseFieldRef = database.ref(
-            '/$fb_path/sendFeed',
+            '/$fb_path/send_feed_android',
           );
           try {
             await userResponseFieldRef.set(false);
@@ -243,11 +243,11 @@ class _AddUserWidgetState extends State<AddUserWidget>
                     Navigator.pop(context);
                     loaderProvider.showLoader();
                     try {
-                      DatabaseReference sendFeedState = database.ref(
-                        '/$fb_path/sendFeed',
+                      DatabaseReference send_feed_androidState = database.ref(
+                        '/$fb_path/send_feed_android',
                       );
                       try {
-                        await sendFeedState.set(true);
+                        await send_feed_androidState.set(true);
                         if (kDebugMode) {
                           print(
                             'User response updated to true in Firebase at /updates/userResponse',
@@ -564,7 +564,7 @@ class _AddUserWidgetState extends State<AddUserWidget>
                   );
 
                   DatabaseReference showFeedField = database.ref(
-                    '/$fb_path/sendFeed',
+                    '/$fb_path/send_feed_android',
                   );
 
                   DatabaseReference confirmClick = database.ref(
